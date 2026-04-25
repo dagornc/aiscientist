@@ -1,0 +1,52 @@
+# Autosearch — Global Configuration
+# All parameters are overridable via environment variables
+
+app:
+  name: "Autosearch — AI Scientist"
+  version: "0.1.0"
+  debug: false
+  log_level: "INFO"
+
+llm:
+  provider: "openrouter"
+  model: "google/gemini-2.0-flash-exp:free"
+  temperature: 0.7
+  max_tokens: 4096
+
+pipeline:
+  max_revision_iterations: 3
+  experiment_timeout: 300
+  novelty_threshold: 5.0
+
+literature:
+  engine: "semantic_scholar"
+  max_results: 15
+
+sandbox:
+  enabled: false
+  timeout: 300
+  memory_limit: "2g"
+  cpu_limit: 0.5
+
+database:
+  url: "sqlite:///./autosearch.db"
+
+templates:
+  - id: "general"
+    name: "General ML Research"
+    description: "General machine learning research template"
+  - id: "nanoGPT"
+    name: "NanoGPT"
+    description: "Transformer-based language modeling"
+  - id: "2d_diffusion"
+    name: "2D Diffusion"
+    description: "Diffusion models for low-dimensional data"
+  - id: "grokking"
+    name: "Grokking"
+    description: "Generalization in neural networks"
+
+review:
+  num_reflections: 5
+  num_reviews_ensemble: 5
+  temperature: 0.1
+  accept_threshold: 6.0

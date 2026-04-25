@@ -1,0 +1,78 @@
+{
+  "app": {
+    "title": "Autosearch — AI Scientist",
+    "subtitle": "Fully Automated Scientific Discovery"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "pipeline": "Pipeline",
+    "ideas": "Ideas",
+    "experiments": "Experiments",
+    "papers": "Papers",
+    "reviews": "Reviews"
+  },
+  "dashboard": {
+    "welcome": "Welcome to Autosearch",
+    "description": "An AI-powered scientific discovery pipeline that automates idea generation, experimentation, paper writing, and peer review.",
+    "stats": "Statistics",
+    "ideas_generated": "Ideas Generated",
+    "experiments_run": "Experiments Run",
+    "papers_written": "Papers Written",
+    "reviews_completed": "Reviews Completed",
+    "quick_start": "Quick Start",
+    "start_new": "Start New Research"
+  },
+  "pipeline": {
+    "title": "AI Scientist Pipeline",
+    "description": "Visualize and control the automated research pipeline",
+    "idea_generation": "Idea Generation",
+    "experiment": "Experimental Iteration",
+    "paper_writing": "Paper Write-up",
+    "peer_review": "Peer Review",
+    "accept": "Accept",
+    "reject_revise": "Reject / Revise"
+  },
+  "ideas": {
+    "title": "Research Ideas",
+    "generate": "Generate Ideas",
+    "research_area": "Research Area",
+    "num_ideas": "Number of Ideas",
+    "template": "Template",
+    "generating": "Generating ideas...",
+    "novelty": "Novelty",
+    "feasibility": "Feasibility",
+    "impact": "Impact"
+  },
+  "experiments": {
+    "title": "Experiments",
+    "run": "Run Experiment",
+    "status": "Status",
+    "duration": "Duration"
+  },
+  "papers": {
+    "title": "Papers",
+    "write": "Write Paper",
+    "abstract": "Abstract"
+  },
+  "reviews": {
+    "title": "Reviews",
+    "review": "Review Paper",
+    "score": "Score",
+    "decision": "Decision",
+    "strengths": "Strengths",
+    "weaknesses": "Weaknesses"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "search": "Search",
+    "no_data": "No data available",
+    "theme": "Toggle theme",
+    "language": "Language"
+  }
+}

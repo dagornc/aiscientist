@@ -1,0 +1,78 @@
+{
+  "app": {
+    "title": "Autosearch — AI Scientist",
+    "subtitle": "Découverte Scientifique Entièrement Automatisée"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "pipeline": "Pipeline",
+    "ideas": "Idées",
+    "experiments": "Expériences",
+    "papers": "Articles",
+    "reviews": "Évaluations"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue dans Autosearch",
+    "description": "Un pipeline de découverte scientifique alimenté par l'IA qui automatise la génération d'idées, l'expérimentation, la rédaction d'articles et l'évaluation par les pairs.",
+    "stats": "Statistiques",
+    "ideas_generated": "Idées Générées",
+    "experiments_run": "Expériences Lancées",
+    "papers_written": "Articles Rédigés",
+    "reviews_completed": "Évaluations Complétées",
+    "quick_start": "Démarrage Rapide",
+    "start_new": "Lancer une Nouvelle Recherche"
+  },
+  "pipeline": {
+    "title": "Pipeline AI Scientist",
+    "description": "Visualisez et contrôlez le pipeline de recherche automatisé",
+    "idea_generation": "Génération d'Idées",
+    "experiment": "Itération Expérimentale",
+    "paper_writing": "Rédaction d'Article",
+    "peer_review": "Évaluation par les Pairs",
+    "accept": "Accepter",
+    "reject_revise": "Rejeter / Réviser"
+  },
+  "ideas": {
+    "title": "Idées de Recherche",
+    "generate": "Générer des Idées",
+    "research_area": "Domaine de Recherche",
+    "num_ideas": "Nombre d'Idées",
+    "template": "Modèle",
+    "generating": "Génération d'idées en cours...",
+    "novelty": "Nouveauté",
+    "feasibility": "Faisabilité",
+    "impact": "Impact"
+  },
+  "experiments": {
+    "title": "Expériences",
+    "run": "Lancer l'Expérience",
+    "status": "Statut",
+    "duration": "Durée"
+  },
+  "papers": {
+    "title": "Articles",
+    "write": "Rédiger l'Article",
+    "abstract": "Résumé"
+  },
+  "reviews": {
+    "title": "Évaluations",
+    "review": "Évaluer l'Article",
+    "score": "Score",
+    "decision": "Décision",
+    "strengths": "Forces",
+    "weaknesses": "Faiblesses"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur est survenue",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "view": "Voir",
+    "search": "Rechercher",
+    "no_data": "Aucune donnée disponible",
+    "theme": "Changer le thème",
+    "language": "Langue"
+  }
+}

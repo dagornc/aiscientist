@@ -62,7 +62,7 @@ class Reviewer:
             A ``Review`` with scores and feedback.
         """
         paper_text = self._paper_to_text(paper)
-        review = self._single_review(paper_text)
+        review = self._single_review(paper_text, paper_id=paper.id)
 
         # Self-reflection: refine the review
         for i in range(num_reflections - 1):
@@ -70,7 +70,7 @@ class Reviewer:
 
         return review
 
-    def _single_review(self, paper_text: str) -> Review:
+    def _single_review(self, paper_text: str, paper_id: str = "") -> Review:
         """Generate a single review of the paper."""
         messages = [
             SystemMessage(content=_REVIEW_SYSTEM_PROMPT),
@@ -78,7 +78,7 @@ class Reviewer:
         ]
 
         response = self._llm.invoke(messages)
-        return self._parse_review(response.content)
+        return self._parse_review(response.content, paper_id=paper_id)
 
     def _reflect(self, paper_text: str, previous_review: Review) -> Review:
         """Refine a review through self-reflection."""
@@ -101,7 +101,7 @@ Output the SAME JSON format as before with potentially updated scores and feedba
             HumanMessage(content=reflect_prompt),
         ]
         response = self._llm.invoke(messages)
-        return self._parse_review(response.content)
+        return self._parse_review(response.content, paper_id=previous_review.paper_id)
 
     def _paper_to_text(self, paper: Paper) -> str:
         """Convert paper to plain text for review."""
@@ -110,7 +110,7 @@ Output the SAME JSON format as before with potentially updated scores and feedba
             parts.append(f"\n## {section.title}\n{section.content}")
         return "\n".join(parts)
 
-    def _parse_review(self, content: str) -> Review:
+    def _parse_review(self, content: str, paper_id: str = "") -> Review:
         """Parse LLM review output into a Review object."""
         try:
             text = content.strip()
@@ -136,6 +136,7 @@ Output the SAME JSON format as before with potentially updated scores and feedba
             }
 
         return Review(
+            paper_id=paper_id,
             overall_score=float(data.get("overall_score", 5.0)),
             decision=ReviewDecision(data.get("decision", "borderline")),
             confidence=float(data.get("confidence", 3.0)),

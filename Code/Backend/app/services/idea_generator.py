@@ -19,23 +19,75 @@ from app.services.literature_search import LiteratureSearchService
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """\
-You are an AI Scientist brainstorming novel research ideas. Given a research area
-and optional constraints, generate creative, feasible, and impactful research ideas.
+_IDEA_GENERATION_PROMPT = """\
+As an AI Scientist, your task is to systematically generate highly innovative and impactful research ideas in the field: {research_area}
 
-For each idea, provide:
-- title: A concise, descriptive title
-- description: A detailed description (2-3 paragraphs) explaining the idea, \
-its motivation, and expected contributions
-- keywords: 3-5 relevant keywords
-- experiment_plan: A brief plan for experiments to validate the idea
+STEP 1: Background Analysis
+First, conduct a brief assessment of the current state of the field:
+- Key challenges and limitations in existing methods
+- Unexplored opportunities or unmet needs
+- Gaps in the current literature
 
-Ensure ideas are:
-1. Novel — not simply reproducing existing work
-2. Feasible — can be implemented and tested computationally
-3. Impactful — could meaningfully advance the field
+STEP 2: Idea Brainstorming
+Generate {num_ideas} research ideas that are:
+- Highly novel (not present in current literature)
+- Computationally feasible to test
+- Potentially transformative for the field
+- Rigorously designed with a clear hypothesis
 
-Output as a JSON array of objects with keys: title, description, keywords, experiment_plan\
+Each idea should follow the template below:
+
+```json
+[
+    {{
+        "id": "idea_X",
+        "title": "<concise and descriptive title>",
+        "abstract": "<2-3 sentence overview of the idea>",
+        "motivation": "<explaining why this is important and what gap it fills>",
+        "methodology": "<detailed approach to implement the idea>",
+        "validation_approach": "<how to test the correctness of this idea>",
+        "expected_outcomes": "<what we expect to achieve or discover>",
+        "potential_impact": "<theoretical and practical significance>",
+        "risks_and_limitations": "<possible challenges or constraints>",
+        "resources_needed": "<computational, data, or other requirements>",
+        "feasibility_score": "<numeric score 1-10>",
+        "reproducibility_notes": "<details to ensure experiment can be replicated>"
+    }},
+    ...
+]
+```
+
+CRITICAL REQUIREMENTS:
+- Each idea must be specific enough to implement as a concrete research project
+- Include both theoretical foundation and practical experimental approach
+- Consider computational efficiency and resource constraints
+- Assess potential obstacles and mitigate accordingly
+- Ideas should be scientifically rigorous with testable hypotheses
+"""
+
+_NOVELTY_CHECK_PROMPT = """\
+Given the research idea and the related work from literature, assess the novelty:
+
+RESEARCH IDEA:
+Title: {idea_title}
+Description: {idea_description}
+
+RELATED WORK SUMMARY:
+{literature_summary}
+
+ANALYSIS REQUIRED:
+1. Overall novelty score (1-10, where 10 is highly novel)
+2. Similar work identified (if any)
+3. Key distinguishing features
+4. Unique contributions compared to existing methods
+
+Format your response as JSON:
+{{
+    "novelty_score": <score_out_of_10>,
+    "similar_work_identified": ["paper_1", "paper_2", ...],
+    "key_distinguishing_features": ["feature_1", "feature_2", ...],
+    "unique_contributions": ["contribution_1", "contribution_2", ...]
+}}
 """
 
 
@@ -59,7 +111,6 @@ class IdeaGenerator:
 
         user_msg = self._build_user_message(request)
         messages = [
-            SystemMessage(content=_SYSTEM_PROMPT),
             HumanMessage(content=user_msg),
         ]
 
@@ -75,15 +126,17 @@ class IdeaGenerator:
         )
 
     def _build_user_message(self, request: IdeaGenerationRequest) -> str:
-        """Build the user message from the request."""
-        parts = [
-            f"Research area: {request.research_area}",
-            f"Number of ideas: {request.num_ideas}",
-            f"Template: {request.template}",
-        ]
+        """Build the user message from the request using the enhanced template."""
+        user_prompt = _IDEA_GENERATION_PROMPT.format(
+            research_area=request.research_area,
+            num_ideas=request.num_ideas,
+        )
+        
         if request.constraints:
-            parts.append(f"Constraints: {', '.join(request.constraints)}")
-        return "\n".join(parts)
+            constraint_str = ", ".join(request.constraints)
+            user_prompt += f"\nADDITIONAL CONSTRAINTS: {constraint_str}"
+        
+        return user_prompt
 
     def _parse_ideas(self, content: str) -> list[Idea]:
         """Parse LLM output into Idea objects."""
@@ -121,10 +174,60 @@ class IdeaGenerator:
         return ideas
 
     def _check_novelty(self, ideas: list[Idea]) -> list[Idea]:
-        """Check novelty of each idea against existing literature."""
+        """Check novelty of each idea against existing literature using enhanced prompt."""
         for idea in ideas:
-            novelty, related = self._literature.check_novelty(idea.title, idea.description)
-            idea.novelty_score = novelty
-            idea.related_work = [f"{r.title} ({r.year})" for r in related[:5]]
+            # Get related work
+            _, related_papers = self._literature.check_novelty(idea.title, idea.description)
+            
+            # Format literature summary
+            literature_summary = "\n".join([
+                f"Title: {r.title}\nYear: {r.year}\nAbstract: {r.abstract[:500]}...\n" 
+                for r in related_papers[:5] if r.abstract
+            ]) if related_papers else "No closely related papers found."
+            
+            # Prepare novelty check prompt
+            novelty_prompt_content = _NOVELTY_CHECK_PROMPT.format(
+                idea_title=idea.title,
+                idea_description=idea.description,
+                literature_summary=literature_summary
+            )
+            
+            # Call LLM for novelty assessment
+            response = self._llm.invoke([HumanMessage(content=novelty_prompt_content)])
+            
+            try:
+                # Parse the assessment result
+                result_text = response.content.strip()
+                if "```json" in result_text:
+                    result_json = result_text.split("```json")[1].split("```")[0]
+                elif "{" in result_text:
+                    result_json = result_text
+                    # Extract only the JSON part if wrapped in text
+                    start_idx = result_json.find("{")
+                    end_idx = result_json.rfind("}") + 1
+                    result_json = result_json[start_idx:end_idx]
+                else:
+                    idea.novelty_score = 0
+                    idea.related_work = [f"{r.title} ({r.year})" for r in related_papers[:5]]
+                    idea.status = IdeaStatus.NOVELTY_CHECKED
+                    continue
+                
+                assessment = json.loads(result_json)
+                if isinstance(assessment, list):
+                    assessment = assessment[0] if assessment else {}
+                if not isinstance(assessment, dict):
+                    assessment = {}
+                idea.novelty_score = float(assessment.get('novelty_score', 0))
+                idea.related_work = assessment.get('similar_work_identified', [])[:5] or [f"{r.title} ({r.year})" for r in related_papers[:5]]
+                idea.metadata.update({
+                    "unique_contributions": assessment.get('unique_contributions', []),
+                    "key_distinguishing_features": assessment.get('key_distinguishing_features', []),
+                })
+            except (json.JSONDecodeError, KeyError) as e:
+                logger.warning(f"Failed to parse novelty assessment: {e}")
+                idea.novelty_score = 0
+                idea.related_work = [f"{r.title} ({r.year})" for r in related_papers[:5]]
+            
             idea.status = IdeaStatus.NOVELTY_CHECKED
+        
         return ideas

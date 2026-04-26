@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3.9"
 
 services:
   backend:
@@ -10,21 +10,25 @@ services:
     env_file:
       - .env
     volumes:
+      - backend-data:/app/data
       - ./Log:/app/Log
-      - ./Config:/app/Config
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/health"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
-    restart: unless-stopped
 
   frontend:
     build:
       context: ./Code/Frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:80"
+      - "5173:5173"
     depends_on:
-      - backend
-    restart: unless-stopped
+      backend:
+        condition: service_healthy
+    environment:
+      - VITE_API_URL=http://localhost:8000
+
+volumes:
+  backend-data:

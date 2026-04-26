@@ -6,9 +6,12 @@ All API keys are loaded from the environment via Settings.
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+import asyncio
+from typing import AsyncIterator, Literal, Protocol, runtime_checkable
 
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import BaseMessage
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.config import settings
 
@@ -29,7 +32,7 @@ class OpenRouterProvider:
         from langchain_openai import ChatOpenAI
 
         return ChatOpenAI(
-            model=settings.llm_model,
+            model=settings.llm_model.replace('openrouter/', ''),
             api_key=settings.openrouter_api_key,
             base_url="https://openrouter.ai/api/v1",
             temperature=settings.llm_temperature,
@@ -104,8 +107,17 @@ _PROVIDERS: dict[str, type[ChatModelProvider]] = {
 }
 
 
+# Enhanced retry implementation
+retry_decorator = retry(
+    stop=stop_after_attempt(settings.llm_retry_attempts),
+    wait=wait_exponential(multiplier=settings.llm_retry_delay, min=1, max=60),
+    reraise=True,
+)
+
+
+@retry_decorator
 def create_chat_model(provider: str | None = None) -> BaseChatModel:
-    """Factory function: create a chat model for the given provider.
+    """Factory function: create a chat model for the given provider with retry logic.
 
     Args:
         provider: Provider name. Defaults to ``settings.llm_provider``.
@@ -115,6 +127,7 @@ def create_chat_model(provider: str | None = None) -> BaseChatModel:
 
     Raises:
         ValueError: If the provider is not supported.
+        Exception: After max retries if instantiation fails.
     """
     name = provider or settings.llm_provider
     provider_cls = _PROVIDERS.get(name)
@@ -122,7 +135,13 @@ def create_chat_model(provider: str | None = None) -> BaseChatModel:
         supported = ", ".join(sorted(_PROVIDERS.keys()))
         msg = f"Unsupported LLM provider: {name!r}. Supported: {supported}"
         raise ValueError(msg)
-    return provider_cls().create()
+    
+    # Additional error handling during model creation
+    try:
+        return provider_cls().create()
+    except Exception as e:
+        print(f"Error creating model for provider {name}: {e}")
+        raise
 
 
 def list_available_providers() -> list[dict[str, str]]:
@@ -138,3 +157,38 @@ def list_available_providers() -> list[dict[str, str]]:
         {"id": "deepseek", "name": "DeepSeek"},
         {"id": "gemini", "name": "Google Gemini"},
     ]
+
+
+class ModelStreamManager:
+    """Helper class to manage streamed responses with enhanced error handling."""
+    
+    def __init__(self, chat_model: BaseChatModel):
+        self.chat_model = chat_model
+    
+    async def stream_completion(
+        self, 
+        messages: list[BaseMessage], 
+        streaming_callback=None,
+        **kwargs
+    ) -> AsyncIterator[str]:
+        """Stream completion response with robust error handling and retries."""
+        try:
+            # Attempt streaming with retry logic
+            async for chunk in self._stream_with_retry(messages, kwargs):
+                if streaming_callback:
+                    await streaming_callback(chunk)
+                yield chunk
+        except Exception as e:
+            print(f"Error during streaming: {e}")
+            raise
+    
+    @retry_decorator
+    async def _stream_with_retry(self, messages: list[BaseMessage], kwargs: dict):
+        """Internal method to handle streaming with retry logic."""
+        try:
+            async for chunk in self.chat_model.astream(messages, **kwargs):
+                content = chunk.content if hasattr(chunk, 'content') else str(chunk)
+                yield content
+        except Exception as e:
+            print(f"Stream attempt failed: {e}")
+            raise

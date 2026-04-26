@@ -27,9 +27,13 @@ class Settings(BaseSettings):
 
     # ── LLM ──────────────────────────────────────────────
     llm_provider: Literal["openrouter", "openai", "anthropic", "deepseek", "gemini"] = "openrouter"
-    llm_model: str = "google/gemini-2.0-flash-exp:free"
+    llm_model: str = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"  # Changed to Sakana AI recommended model
     llm_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     llm_max_tokens: int = Field(default=4096, ge=1)
+    # Retry configuration
+    llm_retry_attempts: int = Field(default=3, ge=1)
+    llm_retry_delay: float = Field(default=1.0, ge=0.0)
+    llm_retry_backoff: float = Field(default=2.0, ge=1.0)
 
     openrouter_api_key: str = ""
     openai_api_key: str = ""
@@ -49,11 +53,19 @@ class Settings(BaseSettings):
     app_log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 
     # ── Sandbox ───────────────────────────────────────────
-    sandbox_enabled: bool = False
+    sandbox_enabled: bool = True  # Enable by default as needed for experiments
     sandbox_timeout: int = Field(default=300, ge=30)
+    sandbox_cpu_limit: str = "1.0"  # CPU limit for sandbox containers
+    sandbox_memory_limit: str = "2g"  # Memory limit for sandbox containers
+    sandbox_network_disabled: bool = True  # Disable network access by default
 
     # ── Database ──────────────────────────────────────────
-    database_url: str = "sqlite:///./autosearch.db"
+    database_url: str = "sqlite:///./ai_scientist.db"
+    
+    # ── LaTeX Compilation ─────────────────────────────────
+    latex_compiler: str = "pdflatex"
+    latex_templates_dir: str = "templates/latex"
+    latex_output_format: str = "pdf"
 
     @property
     def project_root(self) -> Path:

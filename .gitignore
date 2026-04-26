@@ -1,27 +1,43 @@
-.env
-.venv/
+# Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
 *.egg-info/
 dist/
 build/
+
+# Node
 node_modules/
 .vite/
-*.log
-autosearch.db
-*.sqlite3
-.DS_Store
-.idea/
+dist/
+
+# IDE
 .vscode/
+.idea/
 *.swp
 *.swo
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Data & Logs
+*.db
+*.sqlite3
+Log/*.log
+data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
 Code/Frontend/dist/
+Code/Backend/.venv/
+
+# Sphinx
 Doc/sphinx/_build/
-*.pdf
-*.aux
-*.bbl
-*.blg
-*.log
-*.out
-*.toc

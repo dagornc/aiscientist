@@ -1,114 +1,102 @@
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Lightbulb, Sparkles, Loader2 } from 'lucide-react'
-import { fetchAPI, type Idea } from '@/lib/api'
+import { useState } from "react";
+import { PlusCircle, Lightbulb } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { EmptyState } from "../components/common/EmptyState";
+import { Skeleton } from "../components/common/LoadingSpinner";
+import { useIdeas, useGenerateIdeas } from "../hooks/useIdeas";
+import { useLocale } from "../hooks/useLocale";
+import { IdeaCard } from "../components/ideas/IdeaCard";
+import type { Idea } from "../types";
 
-export default function IdeasPage(): JSX.Element {
-  const { t } = useTranslation()
-  const [ideas, setIdeas] = useState<Idea[]>([])
-  const [loading, setLoading] = useState(false)
-  const [area, setArea] = useState('')
-  const [numIdeas, setNumIdeas] = useState(5)
+const IdeasPage = () => {
+  const { t } = useLocale();
+  const { data: ideas, isLoading, isError } = useIdeas();
+  const { mutateAsync: generateIdeas, isPending: isGenerating } = useGenerateIdeas();
+  const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null);
 
-  const generateIdeas = async (): Promise<void> => {
-    if (!area.trim()) return
-    setLoading(true)
+  const handleGenerate = async () => {
     try {
-      const result = await fetchAPI<{ ideas: Idea[] }>('/ideas/generate', {
-        method: 'POST',
-        body: JSON.stringify({
-          research_area: area,
-          num_ideas: numIdeas,
-          template: 'general',
-        }),
-      })
-      setIdeas(result.ideas)
+      await generateIdeas({ domain: "machine learning", count: 5 });
     } catch {
-      // Error handled silently — UI shows no data
-    } finally {
-      setLoading(false)
+      // Error handled by react-query
     }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-32" />
+        ))}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <EmptyState icon={Lightbulb} title={t("common.error")} description="Could not load ideas" />
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t('ideas.title')}</h1>
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-[var(--text)]">{t("ideas.title")}</h1>
+        <Button onClick={handleGenerate} disabled={isGenerating} className="gap-2">
+          <PlusCircle className="h-4 w-4" />
+          {isGenerating ? t("common.loading") : t("ideas.generate")}
+        </Button>
       </div>
 
-      {/* Generation form */}
-      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-        <div className="grid md:grid-cols-3 gap-4">
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium mb-1.5 block">{t('ideas.research_area')}</label>
-            <input
-              type="text"
-              value={area}
-              onChange={(e) => setArea(e.target.value)}
-              placeholder="e.g., Diffusion models for low-dimensional data"
-              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">{t('ideas.num_ideas')}</label>
-            <input
-              type="number"
-              value={numIdeas}
-              onChange={(e) => setNumIdeas(Number(e.target.value))}
-              min={1}
-              max={50}
-              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+      {!ideas || ideas.length === 0 ? (
+        <EmptyState
+          icon={Lightbulb}
+          title={t("ideas.title")}
+          description="Generate research ideas to get started"
+          primaryAction={{ label: t("ideas.generate"), onClick: handleGenerate, icon: PlusCircle }}
+        />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {ideas.map((idea) => (
+            <IdeaCard key={idea.id} idea={idea} onClick={() => setSelectedIdea(idea)} />
+          ))}
+        </div>
+      )}
+
+      {/* Idea detail panel */}
+      {selectedIdea && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setSelectedIdea(null)}
+        >
+          <div
+            className="w-full max-w-lg rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-[var(--text)]">{selectedIdea.title}</h2>
+            <p className="mt-2 text-sm text-[var(--text-muted)]">{selectedIdea.description}</p>
+            <div className="mt-4 grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs text-[var(--text-dim)]">Novelty</p>
+                <p className="text-sm font-medium text-[var(--text)]">{selectedIdea.noveltyScore.toFixed(1)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-[var(--text-dim)]">Feasibility</p>
+                <p className="text-sm font-medium text-[var(--text)]">{selectedIdea.feasibilityScore.toFixed(1)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-[var(--text-dim)]">Impact</p>
+                <p className="text-sm font-medium text-[var(--text)]">{selectedIdea.impactScore.toFixed(1)}</p>
+              </div>
+            </div>
+            <Button className="mt-6" onClick={() => setSelectedIdea(null)}>
+              Close
+            </Button>
           </div>
         </div>
-        <button
-          onClick={generateIdeas}
-          disabled={loading || !area.trim()}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {loading ? t('ideas.generating') : t('ideas.generate')}
-        </button>
-      </div>
-
-      {/* Ideas list */}
-      <div className="space-y-4">
-        {ideas.map((idea) => (
-          <div key={idea.id} className="rounded-xl border border-border bg-card p-5 space-y-3">
-            <div className="flex items-start gap-3">
-              <Lightbulb className="h-5 w-5 text-yellow-500 mt-0.5 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-lg">{idea.title}</h3>
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{idea.description}</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <ScoreBadge label={t('ideas.novelty')} score={idea.novelty_score} />
-              <ScoreBadge label={t('ideas.feasibility')} score={idea.feasibility_score} />
-              <ScoreBadge label={t('ideas.impact')} score={idea.impact_score} />
-            </div>
-            {idea.keywords.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {idea.keywords.map((kw) => (
-                  <span key={kw} className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                    {kw}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      )}
     </div>
-  )
-}
+  );
+};
 
-function ScoreBadge({ label, score }: { label: string; score: number }): JSX.Element {
-  const color = score >= 7 ? 'text-green-500' : score >= 4 ? 'text-yellow-500' : 'text-red-500'
-  return (
-    <div className="flex items-center gap-1.5 text-sm">
-      <span className="text-muted-foreground">{label}:</span>
-      <span className={`font-semibold ${color}`}>{score.toFixed(1)}</span>
-    </div>
-  )
-}
+export default IdeasPage;

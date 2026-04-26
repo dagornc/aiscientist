@@ -92,7 +92,18 @@ class Sandbox:
         except ImportError:
             logger.warning("Docker SDK not installed; sandbox unavailable")
             self._available = False
+        except Exception:
+            logger.error("Failed to initialize Docker client; sandbox unavailable", exc_info=True)
+            self._available = False
         return self._available
+    
+    def get_resource_limits(self) -> dict:
+        """Get resource limits based on settings."""
+        return {
+            "mem_limit": settings.sandbox_memory_limit,
+            "cpu_quota": min(int(float(settings.sandbox_cpu_limit) * 100000), 100000),  # Convert to usable quota
+            "network_disabled": settings.sandbox_network_disabled,
+        }
 
     def build_image(self) -> None:
         """Build the Docker sandbox image."""
@@ -104,7 +115,7 @@ class Sandbox:
             (tmp / "Dockerfile").write_text(_DOCKERFILE, encoding="utf-8")
             (tmp / "runner.py").write_text(_RUNNER_TEMPLATE, encoding="utf-8")
             client.images.build(path=tmpdir, tag=self._image_tag, rm=True)
-        logger.info("Sandbox image built: %s", self._image_tag)
+        logger.info("Enhanced sandbox image built: %s", self._image_tag)
 
     def execute(self, code: str, timeout: int | None = None) -> SandboxResult:
         """Execute Python code inside the sandbox container.
@@ -130,15 +141,18 @@ class Sandbox:
             (tmp / "experiment_code.py").write_text(code, encoding="utf-8")
 
             try:
+                resource_limits = self.get_resource_limits()
                 container = client.containers.run(
                     image=self._image_tag,
                     detach=True,
-                    volumes={tmpdir: {"bind": "/workspace/data", "mode": "rw"}},
-                    mem_limit="2g",
+                    volumes={tmpdir: {"bind": "/workspace", "mode": "rw"}},
+                    mem_limit=resource_limits["mem_limit"],
                     cpu_period=100000,
-                    cpu_quota=50000,
-                    name=f"autosearch-{run_id}",
-                    network_disabled=True,
+                    cpu_quota=resource_limits["cpu_quota"],
+                    network_disabled=resource_limits["network_disabled"],
+                    name=f"ai-scientist-{run_id}",
+                    oom_kill_disable=False,  # Allow OOM killer to prevent system crashes
+                    pids_limit=50,  # Limit number of processes
                 )
                 result = container.wait(timeout=timeout)
                 exit_code = result.get("StatusCode", -1)

@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+import re
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -20,21 +21,57 @@ from app.models.idea import Idea
 
 logger = logging.getLogger(__name__)
 
-_CODE_GEN_PROMPT = """\
-You are an expert ML researcher writing experiment code. Given a research idea
-and experiment plan, generate a complete Python script that:
+_EXPERIMENT_PLAN_PROMPT = """\
+As an AI Scientist, your task is to design a rigorous experimental protocol to validate the research idea:
 
-1. Defines a `run_experiment()` function as the entry point
-2. Implements the proposed method and baseline(s)
-3. Runs experiments and collects metrics
-4. Returns results as a dictionary with keys: metrics, figures, notes
+RESEARCH IDEA:
+{idea_details}
 
-The `run_experiment()` function must return a dict like:
-{{"metrics": {{"accuracy": 0.95, "loss": 0.05}}, "figures": [], "notes": "Observations..."}}
+REQUIRED COMPONENTS IN YOUR EXPERIMENT DESIGN:
 
-Use only: numpy, pandas, matplotlib, scikit-learn, torch (if available).
-Do NOT use any file I/O or network access.
-Output ONLY the Python code, no explanations.\
+1. DETAILED METHODOLOGY:
+   - Specific algorithms and models to implement
+   - Training/validation/test split strategy
+   - Hyperparameters and their values
+   - Random seeds for reproducibility
+
+2. BASELINE COMPARISONS:
+   - Minimum of 2 strong baselines
+   - State-of-the-art methods when available
+   - Simple heuristics as sanity checks
+
+3. EVALUATION METRICS:
+   - Primary metrics (precision, accuracy, F1-score, etc.)
+   - Secondary metrics (AUC, runtime, memory usage, etc.)
+   - Statistical significance tests
+
+4. IMPLEMENTATION REQUIREMENTS:
+   - Include helper functions for preprocessing
+   - Add logging and progress tracking
+   - Implement proper error handling
+   - Ensure deterministic behavior for reproducibility
+   - Clean up temporary resources
+
+Your response should first describe the complete experimental protocol in plain English, 
+then provide the Python code as a complete, executable script in a ```python code block.
+"""
+
+_CODE_VALIDATION_PROMPT = """\
+You are reviewing experiment code for a scientific computing pipeline. 
+Given the provided code and requirements, identify and fix any safety or correctness issues.
+
+REQUIREMENTS:
+- No external file system access (avoid open(), io lib usage)
+- No network access (no requests, urllib, etc.)
+- No shell command execution (no subprocess, os.system, etc.)
+- No unsafe evaluation (no eval(), exec() should be minimal and controlled)
+- Proper exception handling
+- Memory-efficient operations
+
+ORIGINAL CODE:
+{original_code}
+
+Return only the corrected code as a valid Python code block. Do not include any explanations.
 """
 
 
@@ -46,7 +83,7 @@ class ExperimentRunner:
         self._sandbox = Sandbox()
 
     def generate_code(self, idea: Idea) -> str:
-        """Generate experiment code for the given idea.
+        """Generate experiment code for the given idea with comprehensive validation.
 
         Args:
             idea: The research idea.
@@ -54,24 +91,62 @@ class ExperimentRunner:
         Returns:
             Python code string.
         """
-        user_msg = (
-            f"Title: {idea.title}\n\n"
-            f"Description: {idea.description}\n\n"
-            f"Experiment Plan: {idea.experiment_plan}"
-        )
+        # First, generate comprehensive experiment design based on the idea
+        idea_details = f"Title: {idea.title}\n\nDescription: {idea.description}\n\nMethodology: {getattr(idea, 'methodology', '')}\n\nValidation Approach: {getattr(idea, 'validation_approach', '')}"
+        experiment_design_prompt = _EXPERIMENT_PLAN_PROMPT.format(idea_details=idea_details)
+        
         messages = [
-            SystemMessage(content=_CODE_GEN_PROMPT),
-            HumanMessage(content=user_msg),
+            HumanMessage(content=experiment_design_prompt),
         ]
         response = self._llm.invoke(messages)
-        code = response.content.strip()
-        if code.startswith("```python"):
-            code = code[len("```python"):]
-        if code.startswith("```"):
-            code = code[3:]
-        if code.endswith("```"):
-            code = code[:-3]
-        return code.strip()
+        initial_code = response.content.strip()
+        
+        # Extract code from response
+        if "```python" in initial_code:
+            code_match = re.search(r'```python\n(.*?)\n```', initial_code, re.DOTALL)
+            if code_match:
+                extracted_code = code_match.group(1)
+            else:
+                # Fallback: try basic code extraction
+                start_index = initial_code.find('```')
+                if start_index != -1:
+                    end_index = initial_code.find('```', start_index + 3)
+                    if end_index != -1:
+                        extracted_code = initial_code[start_index+3:end_index].strip()
+                    else:
+                        extracted_code = initial_code.strip()
+                else:
+                    extracted_code = initial_code.strip()
+        else:
+            extracted_code = initial_code.strip()
+        
+        # Validate the generated code before returning it
+        validated_code = self.validate_code(extracted_code)
+        
+        return validated_code
+
+    def validate_code(self, original_code: str) -> str:
+        """Validate and sanitize the generated code for safety."""
+        validation_prompt = _CODE_VALIDATION_PROMPT.format(original_code=original_code)
+        try:
+            validation_response = self._llm.invoke([HumanMessage(content=validation_prompt)])
+            sanitized_code = validation_response.content.strip()
+            
+            # Try to extract code blocks from validation response
+            if "```python" in sanitized_code:
+                match = re.search(r'```python\n(.*?)\n```', sanitized_code, re.DOTALL)
+                if match:
+                    sanitized_code = match.group(1).strip()
+            elif "```" in sanitized_code:
+                match = re.search(r'```\n(.*?)\n```', sanitized_code, re.DOTALL)
+                if match:
+                    sanitized_code = match.group(1).strip()
+                    
+            return sanitized_code
+        except Exception:
+            # If validation fails, return the original code (it'll be caught by sandbox anyway)
+            logger.warning("Code validation failed, returning original code")
+            return original_code
 
     def run(self, idea: Idea, timeout: int = 300) -> Experiment:
         """Generate code and run an experiment for the given idea.

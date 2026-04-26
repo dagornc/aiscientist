@@ -1,95 +1,117 @@
-import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
-import { FlaskConical, Lightbulb, TestTube2, FileText, MessageSquareText, ArrowRight } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { fetchAPI, type ModelInfo } from '@/lib/api'
+import { Lightbulb, FlaskConical, FileText, ScrollText } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { StatsApi } from "../api/client";
+import type { StatsData } from "../types";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Progress } from "../components/ui/progress";
+import { Skeleton } from "../components/common/LoadingSpinner";
+import { useLocale } from "../hooks/useLocale";
+import { PipelineTimeline } from "../components/pipeline/PipelineTimeline";
 
-export default function Dashboard(): JSX.Element {
-  const { t } = useTranslation()
-  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
+const DashboardPage = () => {
+  const { t } = useLocale();
 
-  useEffect(() => {
-    fetchAPI<ModelInfo>('/models').then(setModelInfo).catch(() => setModelInfo(null))
-  }, [])
+  const { data: stats, isLoading: statsLoading } = useQuery<StatsData, Error>({
+    queryKey: ["stats"],
+    queryFn: StatsApi.getStats,
+    retry: false,
+  });
 
-  const stats = [
-    { label: t('dashboard.ideas_generated'), value: '0', icon: Lightbulb, color: 'text-yellow-500' },
-    { label: t('dashboard.experiments_run'), value: '0', icon: TestTube2, color: 'text-green-500' },
-    { label: t('dashboard.papers_written'), value: '0', icon: FileText, color: 'text-blue-500' },
-    { label: t('dashboard.reviews_completed'), value: '0', icon: MessageSquareText, color: 'text-purple-500' },
-  ]
+  const displayStats = stats ?? { ideasCount: 0, experimentsCount: 0, papersCount: 0, reviewsCount: 0 };
 
   return (
-    <div className="space-y-8">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-border p-8">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10">
-            <FlaskConical className="h-8 w-8 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold">{t('dashboard.welcome')}</h1>
-            <p className="text-muted-foreground mt-1">{t('dashboard.description')}</p>
-          </div>
-        </div>
-        {modelInfo && (
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm">
-            <span className="font-medium">LLM:</span>
-            <span className="text-primary">{modelInfo.current.model}</span>
-            <span className="text-muted-foreground">via {modelInfo.current.provider}</span>
-          </div>
-        )}
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-[var(--text)]">{t("dashboard.title")}</h1>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">{t("dashboard.overview")}</p>
       </div>
 
-      {/* Stats grid */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">{t('dashboard.stats')}</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-border bg-card p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                <span className="text-sm text-muted-foreground">{stat.label}</span>
-              </div>
-              <p className="text-3xl font-bold">{stat.value}</p>
-            </div>
-          ))}
-        </div>
+      {/* Stats — varied layout, not identical cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatItem
+          icon={<Lightbulb className="h-4 w-4" />}
+          label={t("dashboard.stats.ideas")}
+          value={displayStats.ideasCount}
+          loading={statsLoading}
+          accent
+        />
+        <StatItem
+          icon={<FlaskConical className="h-4 w-4" />}
+          label={t("dashboard.stats.experiments")}
+          value={displayStats.experimentsCount}
+          loading={statsLoading}
+        />
+        <StatItem
+          icon={<FileText className="h-4 w-4" />}
+          label={t("dashboard.stats.papers")}
+          value={displayStats.papersCount}
+          loading={statsLoading}
+        />
+        <StatItem
+          icon={<ScrollText className="h-4 w-4" />}
+          label={t("dashboard.stats.reviews")}
+          value={displayStats.reviewsCount}
+          loading={statsLoading}
+        />
       </div>
 
-      {/* Quick Start */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">{t('dashboard.quick_start')}</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          <Link
-            to="/ideas"
-            className="group flex items-center justify-between rounded-xl border border-border bg-card p-5 hover:border-primary/50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Lightbulb className="h-6 w-6 text-yellow-500" />
-              <div>
-                <p className="font-medium">{t('ideas.generate')}</p>
-                <p className="text-sm text-muted-foreground">{t('ideas.research_area')}</p>
-              </div>
-            </div>
-            <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-          </Link>
+      {/* Active pipeline */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("dashboard.pipeline_status")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PipelineTimeline
+              steps={[
+                { name: "Idea Generation", status: "completed" },
+                { name: "Experimentation", status: "in_progress" },
+                { name: "Paper Writing", status: "pending" },
+                { name: "Peer Review", status: "pending" },
+              ]}
+            />
+            <Progress value={25} className="mt-4 h-1.5" />
+          </CardContent>
+        </Card>
 
-          <Link
-            to="/pipeline"
-            className="group flex items-center justify-between rounded-xl border border-border bg-card p-5 hover:border-primary/50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <FlaskConical className="h-6 w-6 text-primary" />
-              <div>
-                <p className="font-medium">{t('pipeline.title')}</p>
-                <p className="text-sm text-muted-foreground">{t('pipeline.description')}</p>
-              </div>
-            </div>
-            <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-          </Link>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("dashboard.recent_activity")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-[var(--text-dim)]">
+              {t("dashboard.empty_description")}
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
-  )
+  );
+};
+
+interface StatItemProps {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  loading?: boolean;
+  accent?: boolean;
 }
+
+const StatItem = ({ icon, label, value, loading, accent }: StatItemProps) => (
+  <div
+    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
+    style={accent ? { borderLeft: "2px solid var(--accent)" } : undefined}
+  >
+    <div className="flex items-center gap-2 text-[var(--text-dim)]">
+      {icon}
+      <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
+    </div>
+    {loading ? (
+      <Skeleton className="mt-2 h-8 w-16" />
+    ) : (
+      <p className="mt-2 text-2xl font-semibold tabular-nums text-[var(--text)]">{value}</p>
+    )}
+  </div>
+);
+
+export default DashboardPage;

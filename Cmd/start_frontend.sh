@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────
+# AI Scientist — Start Frontend
+# Usage: ./Cmd/start_frontend.sh [--dev]
+# ─────────────────────────────────────────────────────────────
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-FRONTEND_DIR="$PROJECT_ROOT/Code/Frontend"
+cd "$PROJECT_ROOT/Code/Frontend"
 
-cd "$FRONTEND_DIR"
-
-# Install dependencies if needed
-if [ ! -d "node_modules" ]; then
-    echo "📦 Installing frontend dependencies..."
-    npm install
+if [ ! -d node_modules ]; then
+    echo "⚠️  Node modules not found. Run ./Cmd/install.sh first."
+    exit 1
 fi
 
-echo "🎨 Starting frontend on http://localhost:5173"
-npm run dev
+echo "🎨 Starting AI Scientist frontend..."
+npm run dev -- --host 0.0.0.0 --port 5173

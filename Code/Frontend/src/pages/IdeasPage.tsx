@@ -24,7 +24,7 @@ const IdeasPage = () => {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-32" />
         ))}
@@ -33,9 +33,7 @@ const IdeasPage = () => {
   }
 
   if (isError) {
-    return (
-      <EmptyState icon={Lightbulb} title={t("common.error")} description="Could not load ideas" />
-    );
+    return <EmptyState icon={Lightbulb} title={t("common.error")} description="Could not load ideas" />;
   }
 
   return (
@@ -56,41 +54,39 @@ const IdeasPage = () => {
           primaryAction={{ label: t("ideas.generate"), onClick: handleGenerate, icon: PlusCircle }}
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ideas.map((idea) => (
             <IdeaCard key={idea.id} idea={idea} onClick={() => setSelectedIdea(idea)} />
           ))}
         </div>
       )}
 
-      {/* Idea detail panel */}
       {selectedIdea && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => setSelectedIdea(null)}
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setSelectedIdea(null)}>
           <div
             className="w-full max-w-lg rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label={selectedIdea.title}
           >
             <h2 className="text-lg font-semibold text-[var(--text)]">{selectedIdea.title}</h2>
             <p className="mt-2 text-sm text-[var(--text-muted)]">{selectedIdea.description}</p>
             <div className="mt-4 grid grid-cols-3 gap-4">
               <div>
-                <p className="text-xs text-[var(--text-dim)]">Novelty</p>
+                <p className="text-xs text-[var(--text-dim)]">{t("ideas.novelty")}</p>
                 <p className="text-sm font-medium text-[var(--text)]">{selectedIdea.noveltyScore.toFixed(1)}</p>
               </div>
               <div>
-                <p className="text-xs text-[var(--text-dim)]">Feasibility</p>
+                <p className="text-xs text-[var(--text-dim)]">{t("ideas.feasibility")}</p>
                 <p className="text-sm font-medium text-[var(--text)]">{selectedIdea.feasibilityScore.toFixed(1)}</p>
               </div>
               <div>
-                <p className="text-xs text-[var(--text-dim)]">Impact</p>
+                <p className="text-xs text-[var(--text-dim)]">{t("ideas.impact")}</p>
                 <p className="text-sm font-medium text-[var(--text)]">{selectedIdea.impactScore.toFixed(1)}</p>
               </div>
             </div>
             <Button className="mt-6" onClick={() => setSelectedIdea(null)}>
-              Close
+              {t("common.cancel")}
             </Button>
           </div>
         </div>

@@ -1,7 +1,8 @@
 {
   "app": {
-    "title": "Autosearch — AI Scientist",
-    "subtitle": "Fully Automated Scientific Discovery"
+    "title": "Autosearch",
+    "subtitle": "Fully Automated Scientific Discovery",
+    "settings": "Settings"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -14,45 +15,85 @@
   "dashboard": {
     "welcome": "Welcome to Autosearch",
     "description": "An AI-powered scientific discovery pipeline that automates idea generation, experimentation, paper writing, and peer review.",
-    "stats": "Statistics",
+    "overview": "Research Overview",
+    "stats": {
+      "title": "Statistics",
+      "ideas": "Ideas",
+      "experiments": "Experiments",
+      "papers": "Papers",
+      "reviews": "Reviews"
+    },
     "ideas_generated": "Ideas Generated",
     "experiments_run": "Experiments Run",
     "papers_written": "Papers Written",
     "reviews_completed": "Reviews Completed",
     "quick_start": "Quick Start",
-    "start_new": "Start New Research"
+    "start_new": "Start New Research",
+    "pipeline_status": "Pipeline Status",
+    "recent_activity": "Recent Activity",
+    "empty_title": "No Recent Activity",
+    "empty_description": "Your research activities will appear here"
   },
   "pipeline": {
     "title": "AI Scientist Pipeline",
     "description": "Visualize and control the automated research pipeline",
     "idea_generation": "Idea Generation",
-    "experiment": "Experimental Iteration",
-    "paper_writing": "Paper Write-up",
+    "experiment": "Experiment",
+    "paper_writing": "Paper Writing",
     "peer_review": "Peer Review",
     "accept": "Accept",
-    "reject_revise": "Reject / Revise"
+    "reject_revise": "Reject / Revise",
+    "domain": "Research Domain",
+    "iterations": "Iterations",
+    "launch_pipeline": "Launch Pipeline"
   },
   "ideas": {
     "title": "Research Ideas",
     "generate": "Generate Ideas",
+    "generate_modal": {
+      "title": "Generate New Ideas",
+      "field": {
+        "domain": "Research Domain",
+        "domain_placeholder": "e.g., computer vision, quantum computing",
+        "count": "Number of Ideas",
+        "count_placeholder": "How many ideas to generate?"
+      }
+    },
     "research_area": "Research Area",
     "num_ideas": "Number of Ideas",
     "template": "Template",
     "generating": "Generating ideas...",
     "novelty": "Novelty",
     "feasibility": "Feasibility",
-    "impact": "Impact"
+    "impact": "Impact",
+    "filter": {
+      "show_all": "All Status",
+      "new": "New",
+      "planned": "Planned",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "rejected": "Rejected"
+    }
   },
   "experiments": {
     "title": "Experiments",
     "run": "Run Experiment",
+    "run_experiment": "Run Experiment",
     "status": "Status",
-    "duration": "Duration"
+    "duration": "Duration",
+    "logs": "Experiment Logs",
+    "no_logs": "No logs available",
+    "empty_title": "No Experiments",
+    "empty_description": "Your experiments will appear here once created",
+    "progress": "Progress"
   },
   "papers": {
     "title": "Papers",
     "write": "Write Paper",
-    "abstract": "Abstract"
+    "abstract": "Abstract",
+    "download_pdf": "Download PDF",
+    "empty_title": "No Papers",
+    "empty_description": "Papers will appear after the pipeline writes them"
   },
   "reviews": {
     "title": "Reviews",
@@ -60,7 +101,19 @@
     "score": "Score",
     "decision": "Decision",
     "strengths": "Strengths",
-    "weaknesses": "Weaknesses"
+    "weaknesses": "Weaknesses",
+    "overall_score": "Overall Score",
+    "empty_title": "No Reviews",
+    "empty_description": "Reviews will appear after papers are reviewed",
+    "radar_labels": {
+      "relevance": "Relevance",
+      "novelty": "Novelty",
+      "methodology": "Methodology",
+      "validity": "Validity",
+      "presentation": "Presentation",
+      "impact": "Impact",
+      "ethics": "Ethics"
+    }
   },
   "common": {
     "loading": "Loading...",
@@ -73,6 +126,16 @@
     "search": "Search",
     "no_data": "No data available",
     "theme": "Toggle theme",
-    "language": "Language"
+    "language": "Language",
+    "view_details": "View Details",
+    "status": {
+      "pending": "Pending",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "idle": "Idle",
+      "initializing": "Initializing",
+      "in_progress": "In Progress"
+    }
   }
 }

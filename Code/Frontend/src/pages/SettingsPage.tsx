@@ -21,11 +21,10 @@ const SettingsPage = () => {
         <h1 className="text-2xl font-semibold text-[var(--text)]">{t("app.settings")}</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* LLM Configuration */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>LLM Configuration</CardTitle>
+            <CardTitle>{t("pipeline.domain")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1">
@@ -46,12 +45,11 @@ const SettingsPage = () => {
             </div>
             <Button className="gap-2">
               <Save className="h-4 w-4" />
-              Save Configuration
+              {t("common.save")}
             </Button>
           </CardContent>
         </Card>
 
-        {/* Appearance */}
         <Card>
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
@@ -59,7 +57,7 @@ const SettingsPage = () => {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-[var(--text)]">Theme</p>
+                <p className="text-sm font-medium text-[var(--text)]">{t("common.theme")}</p>
                 <p className="text-xs text-[var(--text-dim)]">Switch between dark and light mode</p>
               </div>
               <Button variant="outline" size="sm" onClick={toggleTheme} className="gap-2">
@@ -70,7 +68,7 @@ const SettingsPage = () => {
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-[var(--text)]">Language</p>
+                <p className="text-sm font-medium text-[var(--text)]">{t("common.language")}</p>
                 <p className="text-xs text-[var(--text-dim)]">Choose interface language</p>
               </div>
               <div className="flex gap-2">

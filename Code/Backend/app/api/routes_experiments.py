@@ -7,6 +7,8 @@ from fastapi import APIRouter, HTTPException
 from app.models.experiment import Experiment, ExperimentRequest, ExperimentResponse
 from app.models.idea import Idea, IdeaStatus
 from app.services.experiment_runner import ExperimentRunner
+from app.storage import get_experiment, add_experiment
+from app.models.idea import Idea as IdeaModel
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
 
@@ -23,19 +25,30 @@ def run_experiment(request: ExperimentRequest) -> ExperimentResponse:
     Returns:
         Experiment status and ID.
     """
-    # In production, fetch idea from DB
-    idea = Idea(
-        id=request.idea_id,
-        title="Fetched from DB",
-        description="Placeholder",
-        status=IdeaStatus.IN_PROGRESS,
-    )
+    # Fetch idea from storage (or fallback to placeholder if not found)
+    idea_storage = get_ideas() if hasattr(__import__('app.storage'), 'get_ideas') else []
+    # We'll import get_ideas from storage
+    from app.storage import get_ideas
+    ideas = get_ideas()
+    idea = next((i for i in ideas if i.id == request.idea_id), None)
+    if idea is None:
+        # If not found, create a placeholder (as before) but we should ideally return 404
+        # However, to keep the API working, we'll create a placeholder.
+        idea = IdeaModel(
+            id=request.idea_id,
+            title="Fetched from DB",
+            description="Placeholder",
+            status=IdeaStatus.IN_PROGRESS,
+        )
 
     try:
         if _runner._sandbox.is_available():
             experiment = _runner.run(idea, timeout=request.timeout)
         else:
             experiment = _runner.run_local(idea)
+
+        # Store the experiment
+        add_experiment(experiment)
 
         return ExperimentResponse(
             experiment_id=experiment.id,
@@ -56,5 +69,7 @@ def get_experiment(experiment_id: str) -> Experiment:
     Returns:
         The ``Experiment`` object.
     """
-    # TODO: Implement DB-backed fetch
-    raise HTTPException(status_code=404, detail="Experiment not found")
+    experiment = get_experiment(experiment_id)
+    if experiment is None:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    return experiment

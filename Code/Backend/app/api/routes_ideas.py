@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.models.idea import Idea, IdeaGenerationRequest, IdeaGenerationResponse
 from app.services.idea_generator import IdeaGenerator
+from app.storage import get_ideas, add_idea
 
 router = APIRouter(prefix="/ideas", tags=["ideas"])
 
@@ -23,7 +24,11 @@ def generate_ideas(request: IdeaGenerationRequest) -> IdeaGenerationResponse:
         Generated ideas with novelty scores.
     """
     try:
-        return _generator.generate(request)
+        response = _generator.generate(request)
+        # Store generated ideas
+        for idea in response.ideas:
+            add_idea(idea)
+        return response
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -35,5 +40,4 @@ def list_ideas() -> list[Idea]:
     Returns:
         A list of ``Idea`` objects.
     """
-    # TODO: Implement DB-backed listing
-    return []
+    return get_ideas()

@@ -36,7 +36,7 @@ echo "   Backend PID: $BACKEND_PID"
 # ── Wait for backend to be ready ──────────────────────────────
 echo "⏳ Waiting for backend..."
 for i in $(seq 1 30); do
-    if curl -sf http://localhost:8000/health >/dev/null 2>&1; then
+    if curl -sf http://localhost:8000/api/health >/dev/null 2>&1; then
         echo "   ✅ Backend ready!"
         break
     fi

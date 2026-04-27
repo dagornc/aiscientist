@@ -41,3 +41,4 @@ Code/Backend/.venv/
 
 # Sphinx
 Doc/sphinx/_build/
+Code/Backend/.coverage

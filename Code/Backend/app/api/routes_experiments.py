@@ -7,12 +7,18 @@ from fastapi import APIRouter, HTTPException
 from app.models.experiment import Experiment, ExperimentRequest, ExperimentResponse
 from app.models.idea import Idea, IdeaStatus
 from app.services.experiment_runner import ExperimentRunner
-from app.storage import get_experiment, add_experiment
+from app.storage import get_experiment, get_experiments, add_experiment, get_ideas
 from app.models.idea import Idea as IdeaModel
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
 
 _runner = ExperimentRunner()
+
+
+@router.get("/", response_model=list[Experiment])
+def list_experiments() -> list[Experiment]:
+    """List all stored experiments."""
+    return get_experiments()
 
 
 @router.post("/run", response_model=ExperimentResponse)
@@ -25,15 +31,10 @@ def run_experiment(request: ExperimentRequest) -> ExperimentResponse:
     Returns:
         Experiment status and ID.
     """
-    # Fetch idea from storage (or fallback to placeholder if not found)
-    idea_storage = get_ideas() if hasattr(__import__('app.storage'), 'get_ideas') else []
-    # We'll import get_ideas from storage
-    from app.storage import get_ideas
     ideas = get_ideas()
     idea = next((i for i in ideas if i.id == request.idea_id), None)
     if idea is None:
-        # If not found, create a placeholder (as before) but we should ideally return 404
-        # However, to keep the API working, we'll create a placeholder.
+        # If not found, create a placeholder
         idea = IdeaModel(
             id=request.idea_id,
             title="Fetched from DB",
@@ -60,7 +61,7 @@ def run_experiment(request: ExperimentRequest) -> ExperimentResponse:
 
 
 @router.get("/{experiment_id}", response_model=Experiment)
-def get_experiment(experiment_id: str) -> Experiment:
+def read_experiment(experiment_id: str) -> Experiment:
     """Get experiment details.
 
     Args:

@@ -84,6 +84,19 @@ def health_check() -> dict[str, str]:
     return {"status": "healthy", "version": "0.1.0"}
 
 
+@app.get("/api/stats")
+def get_stats() -> dict[str, int]:
+    """Get aggregate statistics for the dashboard."""
+    from app.storage import get_experiments, get_ideas, get_papers, get_reviews
+
+    return {
+        "ideas_count": len(get_ideas()),
+        "experiments_count": len(get_experiments()),
+        "papers_count": len(get_papers()),
+        "reviews_count": len(get_reviews()),
+    }
+
+
 @app.get("/api/pipeline/graph")
 def get_pipeline_graph() -> dict[str, object]:
     """Get the pipeline graph structure for React Flow visualization."""

@@ -6,10 +6,17 @@ from fastapi import APIRouter, HTTPException
 
 from app.models.paper import Paper, PaperWriteRequest, PaperWriteResponse
 from app.services.paper_writer import PaperWriter
+from app.storage import get_paper, get_papers, add_paper, get_idea, get_experiment
 
 router = APIRouter(prefix="/papers", tags=["papers"])
 
 _writer = PaperWriter()
+
+
+@router.get("/", response_model=list[Paper])
+def list_papers() -> list[Paper]:
+    """List all stored papers."""
+    return get_papers()
 
 
 @router.post("/write", response_model=PaperWriteResponse)
@@ -23,21 +30,26 @@ def write_paper(request: PaperWriteRequest) -> PaperWriteResponse:
         Paper ID and status.
     """
     try:
-        # In production, fetch idea and experiment from DB
-        from app.models.experiment import Experiment, ExperimentStatus
-        from app.models.idea import Idea, IdeaStatus
+        idea = get_idea(request.idea_id)
+        experiment = get_experiment(request.experiment_id)
 
-        idea = Idea(id=request.idea_id, title="Fetched", description="From DB", status=IdeaStatus.COMPLETED)
-        experiment = Experiment(id=request.experiment_id, idea_id=request.idea_id, status=ExperimentStatus.COMPLETED)
+        if not idea:
+            from app.models.idea import Idea, IdeaStatus
+            idea = Idea(id=request.idea_id, title="Placeholder", description="Not found in storage", status=IdeaStatus.COMPLETED)
+        
+        if not experiment:
+            from app.models.experiment import Experiment, ExperimentStatus
+            experiment = Experiment(id=request.experiment_id, idea_id=request.idea_id, status=ExperimentStatus.COMPLETED)
 
         paper = _writer.write_paper(idea, experiment, template=request.template)
+        add_paper(paper)
         return PaperWriteResponse(paper_id=paper.id, status=paper.status, title=paper.title)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.get("/{paper_id}", response_model=Paper)
-def get_paper(paper_id: str) -> Paper:
+def read_paper(paper_id: str) -> Paper:
     """Get paper details.
 
     Args:
@@ -46,4 +58,7 @@ def get_paper(paper_id: str) -> Paper:
     Returns:
         The ``Paper`` object.
     """
-    raise HTTPException(status_code=404, detail="Paper not found")
+    paper = get_paper(paper_id)
+    if not paper:
+        raise HTTPException(status_code=404, detail="Paper not found")
+    return paper

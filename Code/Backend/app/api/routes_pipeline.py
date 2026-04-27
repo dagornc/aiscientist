@@ -17,7 +17,7 @@ _pipeline_runs: dict[str, dict[str, Any]] = {}
 
 
 @router.post("/run")
-def run_pipeline(body: dict[str, Any]) -> dict[str, str]:
+async def run_pipeline(body: dict[str, Any]) -> dict[str, str]:
     """Launch the complete AI Scientist pipeline.
 
     Args:

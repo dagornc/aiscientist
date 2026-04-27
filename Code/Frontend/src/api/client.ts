@@ -2,6 +2,21 @@ import type { Idea, Experiment, Paper, Review, PipelineRun, StatsData, AppSettin
 
 const API_BASE_URL = import.meta.env?.VITE_API_URL || "http://localhost:8000/api";
 
+function snakeToCamel(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(v => snakeToCamel(v));
+  } else if (obj !== null && obj.constructor === Object) {
+    return Object.keys(obj).reduce(
+      (result, key) => ({
+        ...result,
+        [key.replace(/(_\w)/g, m => m[1].toUpperCase())]: snakeToCamel(obj[key]),
+      }),
+      {}
+    );
+  }
+  return obj;
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const config: RequestInit = {
@@ -17,18 +32,21 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
   if (response.status === 204) return {} as T;
-  return response.json() as Promise<T>;
+  const data = await response.json();
+  return snakeToCamel(data) as T;
 }
 
 // Idea API
 export const IdeaApi = {
   getAll: () => request<Idea[]>("/ideas/"),
   getById: (id: string) => request<Idea>(`/ideas/${id}`),
-  generate: (domain: string, numIdeas: number) =>
-    request<Idea[]>("/ideas/generate", {
+  generate: async (domain: string, numIdeas: number) => {
+    const response = await request<{ ideas: Idea[] }>("/ideas/generate", {
       method: "POST",
       body: JSON.stringify({ research_area: domain, num_ideas: numIdeas }),
-    }),
+    });
+    return response.ideas;
+  },
 };
 
 // Experiment API

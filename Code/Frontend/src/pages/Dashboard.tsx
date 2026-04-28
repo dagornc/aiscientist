@@ -1,12 +1,14 @@
-import { Lightbulb, FlaskConical, FileText, ScrollText } from "lucide-react";
+import { Lightbulb, FlaskConical, FileText, ScrollText, ArrowRight, Activity } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { StatsApi } from "../api/client";
 import type { StatsData } from "../types";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
 import { Progress } from "../components/ui/progress";
 import { Skeleton } from "../components/common/LoadingSpinner";
 import { useLocale } from "../hooks/useLocale";
 import { PipelineTimeline } from "../components/pipeline/PipelineTimeline";
+import { Link } from "react-router-dom";
 
 const DashboardPage = () => {
   const { t } = useLocale();
@@ -23,10 +25,10 @@ const DashboardPage = () => {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-[var(--text)]">{t("dashboard.welcome")}</h1>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">{t("dashboard.description")}</p>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">{t("dashboard.overview")}</p>
       </div>
 
-      {/* Stats — varied layout, not identical cards */}
+      {/* Stats — varied layout */}
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatItem
           icon={<Lightbulb className="h-4 w-4" />}
@@ -55,11 +57,14 @@ const DashboardPage = () => {
         />
       </div>
 
-      {/* Active pipeline + recent activity */}
+      {/* Active pipeline + Quick actions */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>{t("pipeline.title")}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-4 w-4 text-[var(--accent)]" />
+              {t("pipeline.title")}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <PipelineTimeline
@@ -76,12 +81,27 @@ const DashboardPage = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t("dashboard.start_new")}</CardTitle>
+            <CardTitle>{t("dashboard.quick_start")}</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <p className="text-sm text-[var(--text-dim)]">
-              {t("dashboard.description")}
+              Launch a new research pipeline or browse existing work.
             </p>
+            <div className="flex flex-col gap-2">
+              <Link to="/pipeline">
+                <Button variant="default" className="w-full gap-2 justify-start">
+                  <Activity className="h-4 w-4" />
+                  {t("pipeline.launch_pipeline")}
+                  <ArrowRight className="ml-auto h-4 w-4" />
+                </Button>
+              </Link>
+              <Link to="/ideas">
+                <Button variant="outline" className="w-full gap-2 justify-start">
+                  <Lightbulb className="h-4 w-4" />
+                  {t("ideas.title")}
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -99,8 +119,8 @@ interface StatItemProps {
 
 const StatItem = ({ icon, label, value, loading, accent }: StatItemProps) => (
   <div
-    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
-    style={accent ? { background: "oklch(0.65 0.18 290 / 0.08)" } : undefined}
+    className="rounded-lg border border-[var(--border)] p-4"
+    style={{ background: accent ? "oklch(0.65 0.18 290 / 0.08)" : "var(--surface)" }}
   >
     <div className="flex items-center gap-2 text-[var(--text-dim)]">
       {icon}
@@ -109,7 +129,11 @@ const StatItem = ({ icon, label, value, loading, accent }: StatItemProps) => (
     {loading ? (
       <Skeleton className="mt-2 h-8 w-16" />
     ) : (
-      <p className={`mt-2 text-2xl font-semibold tabular-nums ${accent ? "text-[var(--accent)]" : "text-[var(--text)]"}`}>
+      <p
+        className={`mt-2 text-2xl font-semibold tabular-nums ${
+          accent ? "text-[var(--accent)]" : "text-[var(--text)]"
+        }`}
+      >
         {value}
       </p>
     )}

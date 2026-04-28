@@ -1,78 +1,78 @@
-"""Simple in-memory storage for ideas and experiments."""
+"""SQLAlchemy-backed storage for ideas and experiments."""
 
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import List
+from sqlalchemy.orm import Session
+
+from app.db.repository import IdeaRepository, ExperimentRepository, PaperRepository, ReviewRepository
 from app.models.idea import Idea
 from app.models.experiment import Experiment
 from app.models.paper import Paper
 from app.models.review import Review
 
-# In-memory storage
-_ideas: List[Idea] = []
-_experiments: Dict[str, Experiment] = {}
-_papers: Dict[str, Paper] = {}
-_reviews: Dict[str, Review] = {}
+# Repository instances
+idea_repo = IdeaRepository()
+experiment_repo = ExperimentRepository()
+paper_repo = PaperRepository()
+review_repo = ReviewRepository()
 
 
-def get_ideas() -> List[Idea]:
+def get_ideas(db: Session) -> List[Idea]:
     """Return all stored ideas."""
-    return _ideas
+    return idea_repo.get_all(db)
 
 
-def get_idea(idea_id: str) -> Idea | None:
+def get_idea(db: Session, idea_id: str) -> Idea | None:
     """Get an idea by ID."""
-    for idea in _ideas:
-        if idea.id == idea_id:
-            return idea
-    return None
+    return idea_repo.get(db, idea_id)
 
 
-def add_idea(idea: Idea) -> None:
+def add_idea(db: Session, idea: Idea) -> None:
     """Add an idea to storage."""
-    _ideas.append(idea)
+    idea_repo.create(db, idea)
 
 
-def get_experiment(experiment_id: str) -> Experiment | None:
+def get_experiment(db: Session, experiment_id: str) -> Experiment | None:
     """Get an experiment by ID."""
-    return _experiments.get(experiment_id)
+    return experiment_repo.get(db, experiment_id)
 
 
-def get_experiments() -> List[Experiment]:
+def get_experiments(db: Session) -> List[Experiment]:
     """Return all stored experiments."""
-    return list(_experiments.values())
+    return experiment_repo.get_all(db)
 
 
-def add_experiment(experiment: Experiment) -> None:
+def add_experiment(db: Session, experiment: Experiment) -> None:
     """Add an experiment to storage."""
-    _experiments[experiment.id] = experiment
+    experiment_repo.create(db, experiment)
 
 
-def get_paper(paper_id: str) -> Paper | None:
+def get_paper(db: Session, paper_id: str) -> Paper | None:
     """Get a paper by ID."""
-    return _papers.get(paper_id)
+    return paper_repo.get(db, paper_id)
 
 
-def get_papers() -> List[Paper]:
+def get_papers(db: Session) -> List[Paper]:
     """Return all stored papers."""
-    return list(_papers.values())
+    return paper_repo.get_all(db)
 
 
-def add_paper(paper: Paper) -> None:
+def add_paper(db: Session, paper: Paper) -> None:
     """Add a paper to storage."""
-    _papers[paper.id] = paper
+    paper_repo.create(db, paper)
 
 
-def get_review(review_id: str) -> Review | None:
+def get_review(db: Session, review_id: str) -> Review | None:
     """Get a review by ID."""
-    return _reviews.get(review_id)
+    return review_repo.get(db, review_id)
 
 
-def get_reviews() -> List[Review]:
+def get_reviews(db: Session) -> List[Review]:
     """Return all stored reviews."""
-    return list(_reviews.values())
+    return review_repo.get_all(db)
 
 
-def add_review(review: Review) -> None:
+def add_review(db: Session, review: Review) -> None:
     """Add a review to storage."""
-    _reviews[review.id] = review
+    review_repo.create(db, review)

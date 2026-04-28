@@ -19,6 +19,31 @@ from app.services.literature_search import LiteratureSearchService
 
 logger = logging.getLogger(__name__)
 
+MAX_LITERATURE_SUMMARY_LENGTH = 2000
+CONTEXT_THRESHOLD = 0.8  # Warning triggered if context exceeds 80%
+
+
+def truncate_for_llm(text: str, max_chars: int) -> str:
+    """Truncate text to fit within maximum character limit.
+    
+    Args:
+        text: Text to truncate
+        max_chars: Maximum number of characters allowed
+        
+    Returns:
+        Truncated text with warning if applicable
+    """
+    if not text:
+        return ""
+    
+    if len(text) > max_chars:
+        original_length = len(text)
+        truncated = text[:max_chars].rsplit(" ", 1)[0]  # Avoid cutting in middle of word if possible
+        if len(truncated) < original_length:
+            logger.warning(f"Truncating content from {original_length} to {len(truncated)} characters for LLM context")
+        return truncated
+    return text
+
 _IDEA_GENERATION_PROMPT = """\
 As an AI Scientist, your task is to systematically generate highly innovative and impactful research ideas in the field: {research_area}
 
@@ -184,6 +209,9 @@ class IdeaGenerator:
                 f"Title: {r.title}\nYear: {r.year}\nAbstract: {r.abstract[:500]}...\n" 
                 for r in related_papers[:5] if r.abstract
             ]) if related_papers else "No closely related papers found."
+            
+            # Truncate literature summary to avoid context overflow
+            literature_summary = truncate_for_llm(literature_summary, MAX_LITERATURE_SUMMARY_LENGTH)
             
             # Prepare novelty check prompt
             novelty_prompt_content = _NOVELTY_CHECK_PROMPT.format(

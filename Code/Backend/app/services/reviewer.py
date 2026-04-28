@@ -18,6 +18,32 @@ from app.models.review import Review, ReviewDecision
 
 logger = logging.getLogger(__name__)
 
+MAX_ABSTRACT_LENGTH = 500
+MAX_SECTION_LENGTH = 1000
+CONTEXT_THRESHOLD = 0.8  # Warning triggered if context exceeds 80%
+
+
+def truncate_for_llm(text: str, max_chars: int) -> str:
+    """Truncate text to fit within maximum character limit.
+    
+    Args:
+        text: Text to truncate
+        max_chars: Maximum number of characters allowed
+        
+    Returns:
+        Truncated text with warning if applicable
+    """
+    if not text:
+        return ""
+    
+    if len(text) > max_chars:
+        original_length = len(text)
+        truncated = text[:max_chars].rsplit(" ", 1)[0]  # Avoid cutting in middle of word if possible
+        if len(truncated) < original_length:
+            logger.warning(f"Truncating content from {original_length} to {len(truncated)} characters for LLM context")
+        return truncated
+    return text
+
 _ICLR_REVIEW_PROMPT = """\
 You are serving as a Program Committee member for ICLR 2025. Evaluate the following research paper using the official ICLR scoring rubric.
 
@@ -188,11 +214,27 @@ Return a revised JSON evaluation adhering to ICLR standards as before, with pote
             return "Poor"
 
     def _paper_to_text(self, paper: Paper) -> str:
-        """Convert paper to plain text for review."""
-        parts = [f"Title: {paper.title}", f"\nAbstract: {paper.abstract}"]
+        """Convert paper to plain text for review with length restrictions."""
+        # Limit abstract length
+        truncated_abstract = truncate_for_llm(paper.abstract, MAX_ABSTRACT_LENGTH)
+        parts = [f"Title: {paper.title}", f"\nAbstract: {truncated_abstract}"]
+        
+        # Limit each section length
         for section in paper.sections:
-            parts.append(f"\n## {section.title}\n{section.content}")
-        return "\n".join(parts)
+            truncated_content = truncate_for_llm(section.content, MAX_SECTION_LENGTH)
+            parts.append(f"\n## {section.title}\n{truncated_content}")
+            
+        paper_text = "\n".join(parts)
+        
+        # Log warning if total text exceeds threshold of max context
+        # Estimating max token count by character count (roughly 4 chars per token)
+        estimated_token_count = len(paper_text) / 4
+        max_estimated_tokens = 32000  # Assuming a reasonable max context
+        estimated_utilization = estimated_token_count / max_estimated_tokens
+        if estimated_utilization > CONTEXT_THRESHOLD:
+            logger.warning(f"Total paper text utilization estimated at {estimated_utilization:.1%} of context capacity")
+        
+        return paper_text
 
     def _parse_review(self, content: str, paper_id: str = "") -> Review:
         """Parse LLM review output into a Review object."""

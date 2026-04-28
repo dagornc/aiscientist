@@ -1,7 +1,8 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import { MockWebSocketService } from "../api/websocket";
+import { WebSocketService } from "../api/websocket";
 
 interface UseWebSocketOptions {
+  runId?: string;
   autoConnect?: boolean;
 }
 
@@ -14,20 +15,28 @@ interface UseWebSocketReturn {
 }
 
 export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketReturn {
-  const { autoConnect = true } = options;
-  const wsRef = useRef<MockWebSocketService | null>(null);
+  const { runId, autoConnect = true } = options;
+  const wsRef = useRef<WebSocketService | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<Record<string, unknown> | null>(null);
 
   const connect = useCallback(() => {
-    if (wsRef.current) return;
-    const ws = new MockWebSocketService();
+    if (wsRef.current) {
+      wsRef.current.disconnect();
+    }
+    const ws = new WebSocketService(runId);
     ws.on("message", (data: Record<string, unknown>) => setLastMessage(data));
-    ws.on("status", (data: Record<string, unknown>) => setLastMessage(data));
+    ws.on("progress", (data: Record<string, unknown>) => setLastMessage(data));
+    ws.on("log", (data: Record<string, unknown>) => setLastMessage(data));
+    ws.on("error", (data: Record<string, unknown>) => setLastMessage(data));
+    ws.on("status", (data: Record<string, unknown>) => {
+      const msg = (data as any).data?.message;
+      if (msg === "connected") setIsConnected(true);
+      if (msg === "disconnected") setIsConnected(false);
+    });
     ws.connect();
     wsRef.current = ws;
-    setIsConnected(true);
-  }, []);
+  }, [runId]);
 
   const disconnect = useCallback(() => {
     wsRef.current?.disconnect();

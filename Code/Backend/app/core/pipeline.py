@@ -10,9 +10,9 @@ Implements the complete AI Scientist workflow as an orchestrator that handles:
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Dict, List, Literal, TypedDict
+from typing import Dict, List, Literal, TypedDict
 
-from langchain_core.messages import BaseMessage, HumanMessage
+
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command
 
@@ -106,11 +106,15 @@ class AIScientistPipeline:
         # Conditional edge from review - either iterate or terminate
         workflow.add_conditional_edges(
             "review_paper", 
-            self._should_iterate_based_on_review
+            self._should_iterate_based_on_review,
+            {"revise_work": "revise_work", "write_paper": "write_paper", "generate_ideas": "generate_ideas", "END": END}
         )
         
-        # Iterate path goes back to experiment (to refine based on feedback)
+        # Different iteration paths based on feedback
         workflow.add_edge("revise_work", "run_experiment")
+        workflow.add_edge("write_paper", "review_paper")
+        # When going back to generate new ideas, cycle through the full process
+        workflow.add_edge("generate_ideas", "select_best_idea")
         
         return workflow.compile()
     
@@ -379,43 +383,117 @@ class AIScientistPipeline:
                 **self._safe_error_update(state, f"Revise work failed: {str(e)}")
             }
     
-    def _should_iterate_based_on_review(self, state: AI_Scientist_State) -> Literal["revise_work", END]:
+    def _analyze_review_weaknesses(self, review: Review) -> Dict[str, bool]:
+        """
+        Analyze a review to determine what types of weaknesses are identified.
+        This helps route the workflow appropriately.
+        
+        Returns a dictionary with various weakness flags:
+        - writing_related: Issues with writing, clarity, or presentation
+        - methodology_related: Issues with methodology or experimental design
+        - novelty_related: Issues with novelty or contribution
+        """
+        weaknesses_text = getattr(review, 'weaknesses', [])
+        
+        # Ensure we have text content to analyze
+        weaknesses_str = " ".join([str(w) for w in weaknesses_text]) 
+        
+        # Define keywords for different types of weaknesses
+        writing_keywords = {
+            'writing', 'clarity', 'presentation', 'communication', 'grammar', 
+            'expression', 'readability', 'structure', 'organization',
+            'style', 'flow', 'coherence', 'language', 'proofreading'
+        }
+        
+        methodology_keywords = {
+            'methodology', 'methods', 'design', 'approach', 'procedure', 
+            'algorithm', 'data', 'dataset', 'validation', 'verification',
+            'experimental', 'experiment', 'baseline', 'results', 'analysis',
+            'evaluation', 'metrics', 'testing', 'trial', 'protocol', 'procedure'
+        }
+        
+        novelty_keywords = {
+            'novelty', 'novel', 'contribution', 'originality', 'unique', 
+            'significant', 'important', 'meaningful', 'innovative',
+            'innovation', 'discovery', 'advancement', 'breakthrough',
+            'groundbreaking', 'first', 'previously', 'unexplored', 'new',
+            'original contribution', 'value'
+        }
+        
+        # Convert the weaknesses text to lowercase for comparison
+        weaknesses_lower = weaknesses_str.lower()
+        
+        # Check for each type of weakness
+        writing_related = any(keyword in weaknesses_lower for keyword in writing_keywords)
+        methodology_related = any(keyword in weaknesses_lower for keyword in methodology_keywords)
+        novelty_related = any(keyword in weaknesses_lower for keyword in novelty_keywords)
+        
+        return {
+            "writing_related": writing_related,
+            "methodology_related": methodology_related,
+            "novelty_related": novelty_related
+        }
+    
+    def _should_iterate_based_on_review(self, state: AI_Scientist_State) -> Literal["revise_work", "write_paper", "generate_ideas", END]:
         """
         Determine if the workflow should continue based on the paper review.
+        Now handles different types of feedback:
+        - Methodology/experiment related -> go to run_experiment
+        - Writing/presentation related -> go to write_paper directly
+        - Novelty/idea related -> go to generate_ideas for new approach
+        - Other/need general revision -> go to revise_work
         """
         current_review = state.get("current_review")
         max_attempts = state.get("max_attempts", 5)
-        current_iteration = state.get("iteration_count", 0)
-        
+        current_iteration = state.get("iteration_count", 0)        
         # Check if maximum attempts reached
         if current_iteration >= max_attempts or current_iteration > 10:  # Safety cap
             logger.info(f"Reached maximum attempts ({max_attempts}), terminating")
             return END
         
-        # If no review available, continue iteration
+        # If no review available, continue with general revision
         if not current_review:
             return "revise_work"
-            
+        
+        # Analyze the weaknesses in the review to determine the path forward
+        weakness_analysis = self._analyze_review_weaknesses(current_review)
+        
         # Check review decision
         decision = current_review.decision.value
         accept_threshold = 7.0  # Paper quality threshold for acceptance
         overall_score = getattr(current_review, 'overall_score', 0)
         
         logger.info(f"Review decision: {decision}, Score: {overall_score}, Accept threshold: {accept_threshold}")
+        logger.info(f"Weakness analysis: {weakness_analysis}")
         
         # If paper meets quality threshold and review is positive, we can accept
         if overall_score >= accept_threshold and decision in ['accept', 'borderline']:
             logger.info(f"Acceptable paper found, terminating (Score: {overall_score})")
             return END
         else:
-            logger.info("Paper needs more work before acceptance, continuing iteration")
-            return "revise_work"
+            # Determine appropriate action based on weaknesses
+            if weakness_analysis.get('writing_related', False):
+                # Writing/presentation/correction issue - go straight to write paper
+                logger.info("Review identified writing/presentation issues, going to write_paper")
+                return "write_paper"
+            elif weakness_analysis.get('methodology_related', False):
+                # Methodology/experiment issue - go back to experiment
+                logger.info("Review identified methodology/experiment issues, going to run_experiment")
+                return "revise_work"  # We'll modify what revise_work does
+            elif weakness_analysis.get('novelty_related', False):
+                # Novelty/contribution issue - generate new ideas
+                logger.info("Review identified novelty/contribution issues, going to generate_ideas")
+                return "generate_ideas"
+            else:
+                # General issues - continue with regular revision
+                logger.info("General issues found, continuing with revision")
+                return "revise_work"
     
     def _safe_error_update(self, state: AI_Scientist_State, error_msg: str) -> Dict:
         """
         Safely update error history without causing key conflicts.
         """
-        current_errors = state.get("error_history", [])
+        current_errors = list(state.get("error_history", []))
         current_errors.append(error_msg)
         
         # Limit error history to prevent growth
@@ -501,11 +579,11 @@ class SingletonAIScientist:
     _instance: SingletonAIScientist | None = None
     pipeline: AIScientistPipeline
 
-    def __new__(cls) -> AIScientistPipeline:
+    def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.pipeline = AIScientistPipeline()
-        return cls._instance.pipeline
+        return cls._instance
 
 
 def execute_research_pipeline(research_area: str, max_attempts: int = 5) -> Dict:

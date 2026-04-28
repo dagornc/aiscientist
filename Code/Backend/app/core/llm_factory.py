@@ -107,6 +107,9 @@ _PROVIDERS: dict[str, type[ChatModelProvider]] = {
 }
 
 
+# Global model cache
+_model_cache: dict[str, BaseChatModel] = {}
+
 # Enhanced retry implementation
 retry_decorator = retry(
     stop=stop_after_attempt(settings.llm_retry_attempts),
@@ -129,7 +132,14 @@ def create_chat_model(provider: str | None = None) -> BaseChatModel:
         ValueError: If the provider is not supported.
         Exception: After max retries if instantiation fails.
     """
+    # Build cache key from all settings that affect the model
     name = provider or settings.llm_provider
+    cache_key = f"{name}:{settings.llm_model}:{settings.llm_temperature}:{settings.llm_max_tokens}"
+    
+    # Check if model is already cached
+    if cache_key in _model_cache:
+        return _model_cache[cache_key]
+    
     provider_cls = _PROVIDERS.get(name)
     if provider_cls is None:
         supported = ", ".join(sorted(_PROVIDERS.keys()))
@@ -138,7 +148,10 @@ def create_chat_model(provider: str | None = None) -> BaseChatModel:
     
     # Additional error handling during model creation
     try:
-        return provider_cls().create()
+        model = provider_cls().create()
+        # Cache the created model
+        _model_cache[cache_key] = model
+        return model
     except Exception as e:
         print(f"Error creating model for provider {name}: {e}")
         raise

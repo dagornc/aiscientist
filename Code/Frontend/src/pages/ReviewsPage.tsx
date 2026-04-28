@@ -7,7 +7,7 @@ import { useReviews } from "../hooks/useReviews";
 import { useLocale } from "../hooks/useLocale";
 import { StatusBadge } from "../components/common/StatusBadge";
 import type { Review } from "../types";
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
+import { ScoreRadar } from "../components/reviews/ScoreRadar";
 
 const ReviewsPage = () => {
   const { t } = useLocale();
@@ -77,23 +77,16 @@ const ReviewsPage = () => {
               {selectedReview.decision.toUpperCase()} ({selectedReview.overallScore}/10)
             </h2>
 
-            <div className="mt-4 h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart
-                  data={[
-                    { subject: "Soundness", value: selectedReview.scores.soundness },
-                    { subject: "Presentation", value: selectedReview.scores.presentation },
-                    { subject: "Contribution", value: selectedReview.scores.contribution },
-                    { subject: "Rating", value: selectedReview.scores.rating },
-                    { subject: "Confidence", value: selectedReview.scores.confidence },
-                  ]}
-                >
-                  <PolarGrid stroke="var(--border)" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
-                  <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
-                  <Radar dataKey="value" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.15} />
-                </RadarChart>
-              </ResponsiveContainer>
+            <div className="mt-4">
+              <ScoreRadar
+                scores={{
+                  soundness: selectedReview.scores.soundness,
+                  presentation: selectedReview.scores.presentation,
+                  contribution: selectedReview.scores.contribution,
+                  rating: selectedReview.scores.rating,
+                  confidence: selectedReview.scores.confidence,
+                }}
+              />
             </div>
 
             {selectedReview.strengths.length > 0 && (

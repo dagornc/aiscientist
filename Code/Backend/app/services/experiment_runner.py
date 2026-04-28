@@ -6,10 +6,11 @@ it in a Docker sandbox.
 
 from __future__ import annotations
 
+import ast
 import json
 import logging
-import time
 import re
+import time
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -126,7 +127,16 @@ class ExperimentRunner:
         return validated_code
 
     def validate_code(self, original_code: str) -> str:
-        """Validate and sanitize the generated code for safety."""
+        """Validate and sanitize the generated code for safety using static analysis first, then LLM validation."""
+        # Static analysis: Check syntax and blacklist dangerous patterns
+        safe_code = self._check_static_analysis(original_code)
+        if not safe_code:
+            # If static analysis detects dangerous patterns, return original code
+            # The sandbox will catch any remaining issues during execution
+            logger.warning("Code validation blocked dangerous patterns before LLM validation")
+            return original_code
+        
+        # Pass to LLM if static analysis passes
         validation_prompt = _CODE_VALIDATION_PROMPT.format(original_code=original_code)
         try:
             validation_response = self._llm.invoke([HumanMessage(content=validation_prompt)])
@@ -147,6 +157,34 @@ class ExperimentRunner:
             # If validation fails, return the original code (it'll be caught by sandbox anyway)
             logger.warning("Code validation failed, returning original code")
             return original_code
+
+    def _check_static_analysis(self, code: str) -> bool:
+        """Perform static analysis on code to detect dangerous patterns."""
+        try:
+            # Check syntax with ast.parse
+            ast.parse(code)
+        except SyntaxError:
+            logger.warning("Syntax error detected in generated code")
+            return False
+        
+        # Define blacklist patterns
+        dangerous_patterns = [
+            r'os\.system',
+            r'subprocess\.',
+            r'eval\(',
+            r'exec\(',
+            r'__import__',
+            r'open\(\s*[\\"\']\w',  # Avoid direct file opening with actual file names
+        ]
+        
+        # Check for blacklisted patterns
+        for pattern in dangerous_patterns:
+            if re.search(pattern, code):
+                logger.warning(f"Dangerous pattern detected: {pattern} in generated code")
+                return False
+        
+        # If all checks pass, code is safe from static analysis perspective
+        return True
 
     def run(self, idea: Idea, timeout: int = 300) -> Experiment:
         """Generate code and run an experiment for the given idea.

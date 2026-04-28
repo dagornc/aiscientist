@@ -1,48 +1,33 @@
-"""Database setup — SQLite with SQLAlchemy async-ready.
-
-Provides session management and base model class.
-"""
+"""Database configuration using SQLAlchemy."""
 
 from __future__ import annotations
 
-import logging
-from pathlib import Path
-
+from contextlib import contextmanager
+from typing import Generator
 from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-
+from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import settings
 
-logger = logging.getLogger(__name__)
-
-_engine = create_engine(
+engine = create_engine(
     settings.database_url,
-    echo=settings.app_debug,
-    connect_args={"check_same_thread": False},
+    echo=False,  # Set to True for SQL debugging
+    pool_pre_ping=True,
+    connect_args={"check_same_thread": False}  # Required for SQLite
 )
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
-
-
-class Base(DeclarativeBase):
-    """SQLAlchemy declarative base."""
-    pass
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
 
-def get_session() -> Session:
-    """Get a database session.
-
-    Yields:
-        A SQLAlchemy ``Session``.
-    """
-    session = SessionLocal()
+def get_db() -> Generator:
+    """Dependency generator for database sessions."""
+    db = SessionLocal()
     try:
-        yield session
+        yield db
     finally:
-        session.close()
+        db.close()
 
 
 def init_db() -> None:
-    """Initialize the database and create tables."""
-    Base.metadata.create_all(bind=_engine)
-    logger.info("Database initialized at %s", settings.database_url)
+    """Initialize the database tables."""
+    from app.db import models  # Import models to register them with Base
+    Base.metadata.create_all(bind=engine)

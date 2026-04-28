@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     app_port: int = 8000
     app_debug: bool = False
     app_log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    app_api_key: str = ""
 
     # ── Sandbox ───────────────────────────────────────────
     sandbox_enabled: bool = True  # Enable by default as needed for experiments

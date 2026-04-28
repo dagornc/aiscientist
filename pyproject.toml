@@ -1,6 +1,6 @@
 [tool.pytest.ini_options]
 pythonpath = ["Code/Backend"]
-testpaths = ["Test"]
+testpaths = ["tests"]
 
 [project]
 name = "autosearch"

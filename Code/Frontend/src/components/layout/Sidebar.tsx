@@ -29,11 +29,18 @@ const Sidebar = ({ collapsed = false }: SidebarProps) => {
   const location = useLocation();
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-56 flex-col border-r border-[var(--border)] bg-[var(--surface)] md:flex">
+    <aside
+      className={cn(
+        "sticky top-0 hidden h-screen flex-col border-r border-[var(--border)] bg-[var(--surface)] transition-[width] duration-150 ease-out md:flex",
+        collapsed ? "w-14" : "w-56",
+      )}
+    >
       <div className="flex h-14 items-center border-b border-[var(--border)] px-4">
         <Link to="/" className="flex items-center gap-2">
           <BrainCircuit className="h-5 w-5 text-[var(--accent)]" />
-          {!collapsed && <span className="text-sm font-semibold text-[var(--text)]">Autosearch</span>}
+          <span className={cn("text-sm font-semibold transition-opacity duration-150", collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100 text-[var(--text)]")}>
+            Autosearch
+          </span>
         </Link>
       </div>
 

@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+
+try:
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+    limiter = Limiter(key_func=get_remote_address)
+    RATE_LIMITING_AVAILABLE = True
+except ImportError:
+    RATE_LIMITING_AVAILABLE = False
+    limiter = None
 
 from app.models.experiment import Experiment, ExperimentRequest, ExperimentResponse
 from app.models.idea import Idea, IdeaStatus
 from app.services.experiment_runner import ExperimentRunner
 from app.storage import get_experiment, get_experiments, add_experiment, get_ideas
-from app.models.idea import Idea as IdeaModel
+from app.db.database import get_db
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
 
@@ -22,20 +32,21 @@ def list_experiments() -> list[Experiment]:
 
 
 @router.post("/run", response_model=ExperimentResponse)
-def run_experiment(request: ExperimentRequest) -> ExperimentResponse:
+def run_experiment(request: ExperimentRequest, db: Session = Depends(get_db)) -> ExperimentResponse:
     """Run an experiment for an idea.
 
     Args:
         request: Experiment execution parameters.
+        db: Database session dependency.
 
     Returns:
         Experiment status and ID.
     """
-    ideas = get_ideas()
+    ideas = get_ideas(db)
     idea = next((i for i in ideas if i.id == request.idea_id), None)
     if idea is None:
         # If not found, create a placeholder
-        idea = IdeaModel(
+        idea = Idea(
             id=request.idea_id,
             title="Fetched from DB",
             description="Placeholder",
@@ -49,7 +60,7 @@ def run_experiment(request: ExperimentRequest) -> ExperimentResponse:
             experiment = _runner.run_local(idea)
 
         # Store the experiment
-        add_experiment(experiment)
+        add_experiment(db, experiment)
 
         return ExperimentResponse(
             experiment_id=experiment.id,
@@ -61,16 +72,17 @@ def run_experiment(request: ExperimentRequest) -> ExperimentResponse:
 
 
 @router.get("/{experiment_id}", response_model=Experiment)
-def read_experiment(experiment_id: str) -> Experiment:
+def read_experiment(experiment_id: str, db: Session = Depends(get_db)) -> Experiment:
     """Get experiment details.
 
     Args:
         experiment_id: The experiment ID.
+        db: Database session dependency.
 
     Returns:
         The ``Experiment`` object.
     """
-    experiment = get_experiment(experiment_id)
+    experiment = get_experiment(db, experiment_id)
     if experiment is None:
         raise HTTPException(status_code=404, detail="Experiment not found")
     return experiment

@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { PlusCircle, Lightbulb } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import { EmptyState } from "../components/common/EmptyState";
 import { Skeleton } from "../components/common/LoadingSpinner";
 import { useIdeas, useGenerateIdeas } from "../hooks/useIdeas";
@@ -12,11 +15,16 @@ const IdeasPage = () => {
   const { t } = useLocale();
   const { data: ideas, isLoading, isError } = useIdeas();
   const { mutateAsync: generateIdeas, isPending: isGenerating } = useGenerateIdeas();
+  const [showGenerate, setShowGenerate] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null);
+  const [domain, setDomain] = useState("");
+  const [count, setCount] = useState("5");
 
   const handleGenerate = async () => {
     try {
-      await generateIdeas({ domain: "machine learning", count: 5 });
+      await generateIdeas({ domain: domain || "machine learning", count: parseInt(count) || 5 });
+      setShowGenerate(false);
+      setDomain("");
     } catch {
       // Error handled by react-query
     }
@@ -39,8 +47,13 @@ const IdeasPage = () => {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-[var(--text)]">{t("ideas.title")}</h1>
-        <Button onClick={handleGenerate} disabled={isGenerating} className="gap-2">
+        <div>
+          <h1 className="text-2xl font-semibold text-[var(--text)]">{t("ideas.title")}</h1>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
+            {ideas?.length ?? 0} idea{ideas?.length !== 1 ? "s" : ""} total
+          </p>
+        </div>
+        <Button onClick={() => setShowGenerate(true)} className="gap-2">
           <PlusCircle className="h-4 w-4" />
           {isGenerating ? t("common.loading") : t("ideas.generate")}
         </Button>
@@ -51,7 +64,7 @@ const IdeasPage = () => {
           icon={Lightbulb}
           title={t("ideas.title")}
           description="Generate research ideas to get started"
-          primaryAction={{ label: t("ideas.generate"), onClick: handleGenerate, icon: PlusCircle }}
+          primaryAction={{ label: t("ideas.generate"), onClick: () => setShowGenerate(true), icon: PlusCircle }}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -61,16 +74,14 @@ const IdeasPage = () => {
         </div>
       )}
 
-      {selectedIdea && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setSelectedIdea(null)}>
-          <div
-            className="w-full max-w-lg rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-label={selectedIdea.title}
-          >
-            <h2 className="text-lg font-semibold text-[var(--text)]">{selectedIdea.title}</h2>
-            <p className="mt-2 text-sm text-[var(--text-muted)]">{selectedIdea.description}</p>
+      {/* Idea Detail Dialog */}
+      <Dialog open={!!selectedIdea} onOpenChange={(open) => !open && setSelectedIdea(null)}>
+        {selectedIdea && (
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{selectedIdea.title}</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-[var(--text-muted)]">{selectedIdea.description}</p>
             <div className="mt-4 grid grid-cols-3 gap-4">
               <div>
                 <p className="text-xs text-[var(--text-dim)]">{t("ideas.novelty")}</p>
@@ -85,12 +96,53 @@ const IdeasPage = () => {
                 <p className="text-sm font-medium text-[var(--text)]">{selectedIdea.impactScore.toFixed(1)}</p>
               </div>
             </div>
-            <Button className="mt-6" onClick={() => setSelectedIdea(null)}>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSelectedIdea(null)}>
+                {t("common.cancel")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      {/* Generate Ideas Dialog */}
+      <Dialog open={showGenerate} onOpenChange={setShowGenerate}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("ideas.generate_modal.title")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="gen-domain">{t("ideas.generate_modal.field.domain")}</Label>
+              <Input
+                id="gen-domain"
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+                placeholder={t("ideas.generate_modal.field.domain_placeholder")}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gen-count">{t("ideas.generate_modal.field.count")}</Label>
+              <Input
+                id="gen-count"
+                type="number"
+                min={1}
+                max={10}
+                value={count}
+                onChange={(e) => setCount(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowGenerate(false)}>
               {t("common.cancel")}
             </Button>
-          </div>
-        </div>
-      )}
+            <Button onClick={handleGenerate} disabled={isGenerating}>
+              {isGenerating ? t("common.loading") : t("ideas.generate")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -1,0 +1,86 @@
+# Global Configuration — AI Scientist (Autosearch)
+# All runtime parameters are centralized here.
+# Environment-specific overrides go in .env
+
+# ── LLM Configuration ──────────────────────────────────────
+llm:
+  provider: openrouter
+  model: nvidia/nemotron-3-super-120b-a12b:free
+  temperature: 0.7
+  max_tokens: 4096
+  retry:
+    max_attempts: 3
+    backoff_base: 2.0
+    max_backoff: 60.0
+
+# ── Literature Search ──────────────────────────────────────
+literature:
+  engine: semantic_scholar  # semantic_scholar | openalex
+  max_results: 20
+  novelty_threshold: 0.7
+
+# ── Pipeline ───────────────────────────────────────────────
+pipeline:
+  max_iterations: 3
+  default_domain: machine_learning
+  available_domains:
+    - machine_learning
+    - natural_language_processing
+    - computer_vision
+    - reinforcement_learning
+    - optimization
+    - generative_models
+
+# ── Sandbox ────────────────────────────────────────────────
+sandbox:
+  enabled: true
+  docker_image: python:3.11-slim
+  timeout_seconds: 300
+  max_memory_mb: 2048
+  max_cpu_percent: 80
+  network_access: false
+
+# ── Paper Generation ───────────────────────────────────────
+paper:
+  template: iclr2025  # iclr2025 | neurips2025
+  compile_latex: true
+  sections:
+    - abstract
+    - introduction
+    - related_work
+    - method
+    - experimental_setup
+    - results
+    - discussion
+    - conclusion
+
+# ── Review ─────────────────────────────────────────────────
+review:
+  num_reflections: 5
+  num_reviews_ensemble: 5
+  temperature: 0.1
+  accept_threshold: 6.0
+  rubric:
+    - soundness
+    - presentation
+    - contribution
+    - overall
+
+# ── Application ────────────────────────────────────────────
+app:
+  host: "0.0.0.0"
+  port: 8000
+  debug: false
+  log_level: INFO
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:5173"
+
+# ── Database ───────────────────────────────────────────────
+database:
+  url: "sqlite:///./data/autosearch.db"
+
+# ── Pexels API ─────────────────────────────────────────────
+pexels:
+  api_key: ""  # Set in .env
+  per_page: 5

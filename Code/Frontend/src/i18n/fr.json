@@ -1,0 +1,141 @@
+{
+  "app": {
+    "title": "Autosearch",
+    "subtitle": "Découverte Scientifique Entièrement Automatisée",
+    "settings": "Paramètres"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "pipeline": "Pipeline",
+    "ideas": "Idées",
+    "experiments": "Expériences",
+    "papers": "Articles",
+    "reviews": "Évaluations"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue dans Autosearch",
+    "description": "Un pipeline de découverte scientifique alimenté par l'IA qui automatise la génération d'idées, l'expérimentation, la rédaction d'articles et l'évaluation par les pairs.",
+    "overview": "Vue d'Ensemble de la Recherche",
+    "stats": {
+      "title": "Statistiques",
+      "ideas": "Idées",
+      "experiments": "Expériences",
+      "papers": "Articles",
+      "reviews": "Évaluations"
+    },
+    "ideas_generated": "Idées Générées",
+    "experiments_run": "Expériences Lancées",
+    "papers_written": "Articles Rédigés",
+    "reviews_completed": "Évaluations Complétées",
+    "quick_start": "Démarrage Rapide",
+    "start_new": "Lancer une Nouvelle Recherche",
+    "pipeline_status": "État du Pipeline",
+    "recent_activity": "Activité Récente",
+    "empty_title": "Aucune Activité Récente",
+    "empty_description": "Vos activités de recherche apparaîtront ici"
+  },
+  "pipeline": {
+    "title": "Pipeline AI Scientist",
+    "description": "Visualisez et contrôlez le pipeline de recherche automatisé",
+    "idea_generation": "Génération d'Idées",
+    "experiment": "Expérience",
+    "paper_writing": "Rédaction d'Article",
+    "peer_review": "Évaluation par les Pairs",
+    "accept": "Accepter",
+    "reject_revise": "Rejeter / Réviser",
+    "domain": "Domaine de Recherche",
+    "iterations": "Itérations",
+    "launch_pipeline": "Lancer le Pipeline"
+  },
+  "ideas": {
+    "title": "Idées de Recherche",
+    "generate": "Générer des Idées",
+    "generate_modal": {
+      "title": "Générer de Nouvelles Idées",
+      "field": {
+        "domain": "Domaine de Recherche",
+        "domain_placeholder": "ex : vision par ordinateur, informatique quantique",
+        "count": "Nombre d'Idées",
+        "count_placeholder": "Combien d'idées générer ?"
+      }
+    },
+    "research_area": "Domaine de Recherche",
+    "num_ideas": "Nombre d'Idées",
+    "template": "Modèle",
+    "generating": "Génération d'idées en cours...",
+    "novelty": "Nouveauté",
+    "feasibility": "Faisabilité",
+    "impact": "Impact",
+    "filter": {
+      "show_all": "Tous Statuts",
+      "new": "Nouveau",
+      "planned": "Planifié",
+      "in_progress": "En Cours",
+      "completed": "Complété",
+      "rejected": "Rejeté"
+    }
+  },
+  "experiments": {
+    "title": "Expériences",
+    "run": "Lancer l'Expérience",
+    "run_experiment": "Lancer l'Expérience",
+    "status": "Statut",
+    "duration": "Durée",
+    "logs": "Journaux d'Expérience",
+    "no_logs": "Aucun journal disponible",
+    "empty_title": "Aucune Expérience",
+    "empty_description": "Vos expériences apparaîtront ici dès leur création",
+    "progress": "Progression"
+  },
+  "papers": {
+    "title": "Articles",
+    "write": "Rédiger l'Article",
+    "abstract": "Résumé",
+    "download_pdf": "Télécharger PDF",
+    "empty_title": "Aucun Article",
+    "empty_description": "Les articles apparaîtront après rédaction par le pipeline"
+  },
+  "reviews": {
+    "title": "Évaluations",
+    "review": "Évaluer l'Article",
+    "score": "Score",
+    "decision": "Décision",
+    "strengths": "Forces",
+    "weaknesses": "Faiblesses",
+    "overall_score": "Score Global",
+    "empty_title": "Aucune Évaluation",
+    "empty_description": "Les évaluations apparaîtront après la revue des articles",
+    "radar_labels": {
+      "relevance": "Pertinence",
+      "novelty": "Originalité",
+      "methodology": "Méthodologie",
+      "validity": "Validité",
+      "presentation": "Présentation",
+      "impact": "Impact",
+      "ethics": "Éthique"
+    }
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur est survenue",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "view": "Voir",
+    "search": "Rechercher",
+    "no_data": "Aucune donnée disponible",
+    "theme": "Changer le thème",
+    "language": "Langue",
+    "view_details": "Voir les Détails",
+    "status": {
+      "pending": "En attente",
+      "running": "En cours",
+      "completed": "Terminé",
+      "failed": "Échoué",
+      "idle": "Inactif",
+      "initializing": "Initialisation",
+      "in_progress": "En Cours"
+    }
+  }
+}
